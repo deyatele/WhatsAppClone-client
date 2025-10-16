@@ -1,26 +1,72 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+async function attemptRefresh(request: NextRequest): Promise<string | null> {
+  const refreshToken = request.cookies.get("refreshToken")?.value;
+  if (!refreshToken) return null;
+
+  try {
+    const refreshUrl = new URL("/api/auth/refresh", request.url);
+    const response = await fetch(refreshUrl, {
+      method: "POST",
+      headers: {
+        Cookie: `refreshToken=${refreshToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.accessToken || null;
+  } catch (error) {
+    console.error("[Middleware] Refresh request failed:", error);
+    return null;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const accessToken = request.cookies.get("accessToken")?.value;
-
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
 
-  // Если пользователь авторизован, но пытается зайти на страницу входа/регистрации,
-  // перенаправляем его на главную.
-  if (accessToken && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+  let accessToken: string | null | undefined =
+    request.cookies.get("accessToken")?.value;
+
+  if (!accessToken) {
+    accessToken = await attemptRefresh(request);
   }
 
-  // Если пользователь НЕ авторизован и пытается зайти НЕ на страницу входа/регистрации,
-  // перенаправляем его на страницу входа.
-  if (!accessToken && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (accessToken) {
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    const response = NextResponse.next();
+
+    if (!request.cookies.has("accessToken")) {
+      const ACCESS_TOKEN_LIFETIME_SEC =
+        Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900;
+      response.cookies.set("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: ACCESS_TOKEN_LIFETIME_SEC,
+        path: "/",
+      });
+    }
+
+    return response;
   }
 
-  // Во всех остальных случаях разрешаем переход.
+  if (!isAuthPage) {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+
+    response.cookies.delete("accessToken");
+    response.cookies.delete("refreshToken");
+    return response;
+  }
+
   return NextResponse.next();
 }
 

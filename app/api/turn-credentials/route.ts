@@ -13,7 +13,6 @@ export async function GET(request: Request) {
 
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    // Запрос к вашему основному бэкенду
     const response = await fetch(`${API_URL}/turn-credentials/${userId}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,

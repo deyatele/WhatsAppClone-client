@@ -6,29 +6,42 @@ import { redirect } from "next/navigation";
 import type { LoginDto, RegisterDto } from "../lib/api";
 import { authApi } from "../lib/api";
 
-const ACCESS_TOKEN_LIFETIME = 15 * 60 * 1000; // 15 минут
-const REFRESH_TOKEN_EXPIRES_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+// Используем переменные окружения для времени жизни токенов, приводя их к секундам
+// Убедитесь, что эти переменные заданы в вашем .env файле
+const ACCESS_TOKEN_LIFETIME_SEC =
+  Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900; // 15 минут
+const REFRESH_TOKEN_LIFETIME_SEC =
+  Number(process.env.REFRESH_TOKEN_LIFETIME_SEC) || 604800; // 7 дней
+
+/**
+ * Устанавливает accessToken и refreshToken в httpOnly куки.
+ * @param accessToken - Токен доступа
+ * @param refreshToken - Токен обновления
+ */
+async function _setAuthCookies(accessToken: string, refreshToken: string) {
+  const cookieStore = await cookies();
+
+  cookieStore.set("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: ACCESS_TOKEN_LIFETIME_SEC,
+    path: "/",
+  });
+
+  cookieStore.set("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: REFRESH_TOKEN_LIFETIME_SEC,
+    path: "/",
+  });
+}
 
 export async function loginAction(dto: LoginDto) {
   try {
     const data = await authApi.login(dto);
-    const cookieStore = await cookies();
-
-    cookieStore.set("accessToken", data.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: ACCESS_TOKEN_LIFETIME / 1000,
-      path: "/",
-    });
-
-    cookieStore.set("refreshToken", data.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: REFRESH_TOKEN_EXPIRES_DAYS / 1000,
-      path: "/",
-    });
+    await _setAuthCookies(data.accessToken, data.refreshToken);
   } catch (error) {
     console.error("Login Action Failed:", error);
     return {
@@ -41,27 +54,17 @@ export async function loginAction(dto: LoginDto) {
 
 export async function registerAction(dto: RegisterDto) {
   try {
+    // 1. Сначала регистрируем пользователя
+    await authApi.register(dto);
+
+    // 2. Затем логиним его, чтобы получить токены
     const loginData = await authApi.login({
       identifier: dto.phone,
       password: dto.password,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set("accessToken", loginData.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: ACCESS_TOKEN_LIFETIME / 1000,
-      path: "/",
-    });
-
-    cookieStore.set("refreshToken", loginData.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: REFRESH_TOKEN_EXPIRES_DAYS / 1000,
-      path: "/",
-    });
+    // 3. Устанавливаем куки
+    await _setAuthCookies(loginData.accessToken, loginData.refreshToken);
   } catch (error) {
     console.error("Register Action Failed:", error);
     return {
@@ -88,7 +91,7 @@ export async function refreshAccessTokenAction(refreshToken: string) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: ACCESS_TOKEN_LIFETIME / 1000,
+      maxAge: ACCESS_TOKEN_LIFETIME_SEC,
       path: "/",
     });
     return { success: true };

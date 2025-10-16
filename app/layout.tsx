@@ -12,13 +12,20 @@ export const metadata = {
 
 async function getUserIdFromToken(token: string): Promise<string | null> {
   if (!token) return null;
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error("JWT_SECRET is not set in environment variables.");
+    throw new Error("JWT_SECRET is not configured.");
+  }
+
   try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "super-secret-key",
-    );
-    const { payload } = await jwtVerify(token, secret);
+    const secretKey = new TextEncoder().encode(secret);
+    const { payload } = await jwtVerify(token, secretKey);
     return payload.sub || null;
-  } catch {
+  } catch (error) {
+    // Логируем ошибку для отладки, но не выводим ее пользователю
+    console.error("JWT verification failed:", error);
     return null; // Не удалось верифицировать, значит токен невалиден
   }
 }

@@ -1,10 +1,8 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-// Этот маршрут действует как прокси к основному бэкенду,
-// используя httpOnly cookie для аутентификации.
 export async function GET(
-  _: Request,
+  request: NextRequest,
   { params }: { params: { chatId: string } },
 ) {
   const { chatId } = await params;
@@ -20,11 +18,22 @@ export async function GET(
     return new NextResponse("Chat ID is required", { status: 400 });
   }
 
+  // Получаем параметры пагинации из URL
+  const { searchParams } = new URL(request.url);
+  const cursor = searchParams.get("cursor");
+  const limit = searchParams.get("limit") || "15"; // Лимит по умолчанию 10
+
   try {
-    // Мы не можем напрямую вызвать chatApi.getMessages, так как он требует токен как аргумент,
-    // а нам нужен fetch с уже встроенными куки. Поэтому мы делаем прямой fetch.
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const response = await fetch(`${API_URL}/messages/chat/${chatId}`, {
+    
+    // Строим URL с параметрами пагинации
+    const url = new URL(`${API_URL}/messages/chat/${chatId}`);
+    url.searchParams.append("limit", limit);
+    if (cursor) {
+      url.searchParams.append("cursor", cursor);
+    }
+
+    const response = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -37,9 +46,10 @@ export async function GET(
       });
     }
 
-    const messages = await response.json();
-    return NextResponse.json(messages);
-  } catch {
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Failed to fetch messages:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

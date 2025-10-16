@@ -26,10 +26,10 @@ class WebRTCManager {
     if (this.socket) {
       return;
     }
-    log(`CallStae Init: ${useChatStore.getState().callState}`);
+    log(`Debug:CallStae Init: ${useChatStore.getState().callState}`);
     this.socket = socket;
     this._registerSocketListeners();
-    log("WebRTCManager initialized");
+    log("Debug:WebRTCManager initialized");
 
     // Add unload listeners
     window.addEventListener("beforeunload", this.closeConnection.bind(this));
@@ -44,16 +44,15 @@ class WebRTCManager {
     this.socket.on("call:answer", this._handleAnswer.bind(this));
     this.socket.on("call:candidate", this._handleIceCandidate.bind(this));
     this.socket.on("call:ended", this.closeConnection.bind(this));
-    this.socket.on("call:accepted", (payload) => {
-      console.log("CALL:ACCEPT", payload);
+    this.socket.on("call:accepted", (payload) => {      
       if (payload?.id) this.currentCallId = payload.id;
-      log(`Call accepted by ${payload.from}, callId=${this.currentCallId}`);
+      log(
+        `Debug:Call accepted by ${payload.from}, callId=${this.currentCallId}`,
+      );
     });
-    this.socket.on("call:started", (payload) => {
-      console.log("call:started payload", payload);
-
+    this.socket.on("call:started", (payload) => {     
       if (payload?.call?.id) this.currentCallId = payload.call.id;
-      log(`Call started, callId=${this.currentCallId}`);
+      log(`Debug:Call started, callId=${this.currentCallId}`);
     });
   }
 
@@ -76,11 +75,11 @@ class WebRTCManager {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = stream;
       useChatStore.getState().setLocalStream(stream);
-      log("✅ Got local stream");
+      log("Debug:✅ Got local stream");
       return stream;
     } catch (error) {
       log(
-        `❌ Failed to get local stream ${error && error instanceof Error ? error.message : String(error)}`,
+        `Error ❌ Failed to get local stream ${error && error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
     }
@@ -95,7 +94,6 @@ class WebRTCManager {
         throw new Error("Failed to fetch TURN credentials");
       }
       const turnConfig = await response.json();
-      console.log("turnConfig", turnConfig);
       return {
         iceServers: [
           // { urls: 'stun:stun.l.google.com:19302' },
@@ -105,7 +103,7 @@ class WebRTCManager {
       };
     } catch (error) {
       log(
-        `⚠️ Could not get TURN credentials, using STUN only. ${error && error instanceof Error ? error.message : String(error)}`,
+        `Error:⚠️ Could not get TURN credentials, using STUN only. ${error && error instanceof Error ? error.message : String(error)}`,
       );
       return {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -115,7 +113,7 @@ class WebRTCManager {
 
   private async _initPeerConnection(toUserId: string) {
     if (this.peerConnection) {
-      log("Peer connection already exists.");
+      log("Debug:Peer connection already exists.");
       return;
     }
     this.currentCallUserId = toUserId;
@@ -129,14 +127,14 @@ class WebRTCManager {
     });
 
     this.peerConnection.ontrack = (event) => {
-      log("📡 Remote track received");
+      log("Debug:📡 Remote track received");
       this.remoteStream = event.streams[0];
       useChatStore.getState().setRemoteStream(this.remoteStream);
     };
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.socket && this.currentCallUserId) {
-        this.socket.emit("call:candidate", {
+        this.socket.emit("Debug:call:candidate", {
           to: this.currentCallUserId,
           candidate: event.candidate,
         });
@@ -145,13 +143,13 @@ class WebRTCManager {
 
     this.peerConnection.oniceconnectionstatechange = () => {
       const state = this.peerConnection?.iceConnectionState;
-      log(`🧊 ICE connection state: ${state}`);
+      log(`Debug:🧊 ICE connection state: ${state}`);
 
       if (
         !this.suppressRestart &&
         (state === "disconnected" || state === "failed")
       ) {
-        log("🔄 Attempting to restore connection...");
+        log("Debug:🔄 Attempting to restore connection...");
         setTimeout(() => {
           if (
             !this.suppressRestart &&
@@ -166,7 +164,7 @@ class WebRTCManager {
     };
 
     this.peerConnection.onconnectionstatechange = () => {
-      log(`🔗 Connection state: ${this.peerConnection?.connectionState}`);
+      log(`Debug:🔗 Connection state: ${this.peerConnection?.connectionState}`);
       if (this.peerConnection?.connectionState === "connected") {
         useChatStore.getState().setCallState("connected");
       }
@@ -176,14 +174,14 @@ class WebRTCManager {
   private async _restartIce() {
     if (!this.peerConnection) return log("⚠️ No peerConnection for ICE restart");
     if (this.peerConnection.signalingState !== "stable")
-      return log("⚠️ Signaling state is not stable");
+      return log("Debug:⚠️ Signaling state is not stable");
     if (!this.currentCallUserId)
-      return log("❌ Cannot restart ICE: no current call user ID");
+      return log("Debug:❌ Cannot restart ICE: no current call user ID");
     if (useChatStore.getState().callState === "idle")
-      return log("⚠️ Call state is idle, not restarting ICE."); // Added safety check
+      return log("Debug:⚠️ Call state is idle, not restarting ICE."); // Added safety check
 
     try {
-      log("🔄 Restarting ICE...");
+      log("Debug:🔄 Restarting ICE...");
       const offer = await this.peerConnection.createOffer({ iceRestart: true });
       await this.peerConnection.setLocalDescription(offer);
 
@@ -193,7 +191,7 @@ class WebRTCManager {
           sdp: this.peerConnection.localDescription,
           iceRestart: true,
         });
-        log(`📤 ICE restart offer sent to ${this.currentCallUserId}`);
+        log(`Debug:📤 ICE restart offer sent to ${this.currentCallUserId}`);
       }
     } catch (error) {
       log(
@@ -205,7 +203,7 @@ class WebRTCManager {
   }
 
   public async initiateCall(toUserId: string) {
-    log(`📞 Initiating call to ${toUserId}`);
+    log(`Debug:📞 Initiating call to ${toUserId}`);
     useChatStore.getState().setCallState("calling");
     await this._initPeerConnection(toUserId);
 
@@ -299,7 +297,7 @@ class WebRTCManager {
   }
 
   public async answerCall() {
-    log("✅ Answering call");
+    log("Debug:✅ Answering call");
     const { incomingCall } = useChatStore.getState();
     if (!incomingCall || !this.socket) return;
 
@@ -316,7 +314,7 @@ class WebRTCManager {
       await this.peerConnection.setLocalDescription(answer);
 
       this.socket.emit("call:answer", { to: incomingCall.from, sdp: answer });
-      log("📤 Answer sent");
+      log("Debug:📤 Answer sent");
 
       useChatStore.getState().setCallState("connected");
       useChatStore.getState().setIncomingCall(null);
@@ -345,7 +343,7 @@ class WebRTCManager {
         new RTCSessionDescription(sdp),
       );
       this.isRemoteDescriptionSet = true;
-      log("✅ Remote description (answer) set");
+      log("Debug:✅ Remote description (answer) set");
       this._processIceCandidates();
     } catch (error) {
       log(
@@ -363,12 +361,14 @@ class WebRTCManager {
     from: string;
     candidate: RTCIceCandidateInit;
   }) {
-    log(`🧊 ICE candidate received from ${from}`);
+    log(`Debug:🧊 ICE candidate received from ${from}`);
     if (!candidate) return;
 
     if (!this.peerConnection || !this.isRemoteDescriptionSet) {
       this.iceCandidateBuffer.push(candidate);
-      log(`💾 Buffering ICE candidate (${this.iceCandidateBuffer.length})`);
+      log(
+        `Debug:💾 Buffering ICE candidate (${this.iceCandidateBuffer.length})`,
+      );
       return;
     }
     try {
@@ -385,7 +385,7 @@ class WebRTCManager {
   private _processIceCandidates() {
     if (this.iceCandidateBuffer.length > 0) {
       log(
-        `🔄 Processing ${this.iceCandidateBuffer.length} buffered ICE candidates`,
+        `Debug:🔄 Processing ${this.iceCandidateBuffer.length} buffered ICE candidates`,
       );
       this.iceCandidateBuffer.forEach((candidate) => {
         this.peerConnection?.addIceCandidate(candidate);
@@ -395,14 +395,9 @@ class WebRTCManager {
   }
 
   public closeConnection() {
-    log("❌ Closing connection");
+    log("Debug:❌ Closing connection");
     log(
-      "To id: " +
-        this.currentCallUserId +
-        " To id: " +
-        "?" +
-        " Call Id:" +
-        this.currentCallId,
+      `"Debug:To id: ${this.currentCallUserId}  Call Id: ${this.currentCallId}`,
     );
 
     if (this.currentCallId) {
@@ -444,7 +439,7 @@ class WebRTCManager {
     if (!this.localStream) return;
     this.localStream.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
-      log(`🎤 Microphone ${track.enabled ? "ON" : "OFF"}`);
+      log(`Debug:🎤 Microphone ${track.enabled ? "ON" : "OFF"}`);
     });
   }
 
@@ -452,7 +447,7 @@ class WebRTCManager {
     if (!this.localStream) return;
     this.localStream.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
-      log(`🎬 Camera ${track.enabled ? "ON" : "OFF"}`);
+      log(`Debug:🎬 Camera ${track.enabled ? "ON" : "OFF"}`);
     });
   }
 
@@ -467,7 +462,7 @@ class WebRTCManager {
       videoInputs[1] ||
       videoInputs[0];
     log(
-      `Video devices found: ${{
+      `Debug:Video devices found: ${{
         front: this.frontCamera?.label,
         back: this.backCamera?.label,
       }}`,
@@ -483,7 +478,7 @@ class WebRTCManager {
       ? this.frontCamera?.deviceId
       : this.backCamera?.deviceId;
     if (!deviceId) {
-      log("⚠️ Could not find camera to switch to.");
+      log("Debug:⚠️ Could not find camera to switch to.");
       return;
     }
 
@@ -506,7 +501,7 @@ class WebRTCManager {
     this.localStream.addTrack(newTrack);
     useChatStore.getState().setLocalStream(this.localStream);
 
-    log(`🔄 Switched camera to ${this.usingFront ? "front" : "back"}`);
+    log(`Debug:🔄 Switched camera to ${this.usingFront ? "front" : "back"}`);
   }
 
   public async toggleScreenShare() {
@@ -533,7 +528,7 @@ class WebRTCManager {
 
         this.savedCameraTrack = null;
         this.isScreenSharing = false;
-        log("🖥️ Screen sharing stopped.");
+        log("Debug:🖥️ Screen sharing stopped.");
       }
     } else {
       // Start screen share
@@ -561,10 +556,10 @@ class WebRTCManager {
           }
         };
         this.isScreenSharing = true;
-        log("🖥️ Screen sharing started.");
+        log("Debug:🖥️ Screen sharing started.");
       } catch (error) {
         log(
-          `❌ Could not start screen share ${
+          `Error:❌ Could not start screen share ${
             error && error instanceof Error ? error.message : String(error)
           }`,
         );

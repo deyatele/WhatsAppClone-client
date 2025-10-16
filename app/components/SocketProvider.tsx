@@ -25,14 +25,12 @@ interface SocketProviderProps {
 
 export const SocketProvider = ({ children, token }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const { setUserId } = useChatStore();
+  const { setUserId, addMessageToEnd } = useChatStore();
 
   useEffect(() => {
     if (!token) return;
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3001";
-
-    // URL для сокета должен быть без /api
     const socketUrl = new URL(API_URL).origin;
 
     const newSocket = io(socketUrl, {
@@ -61,12 +59,16 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       webRTCManager.closeConnection();
     });
 
+    newSocket.on("message:new", (message) => {
+      addMessageToEnd(message);
+    });
+
     setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();
     };
-  }, [token, setUserId]);
+  }, [token, setUserId, addMessageToEnd]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

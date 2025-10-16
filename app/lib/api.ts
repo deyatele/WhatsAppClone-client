@@ -1,12 +1,6 @@
-import https from "node:https";
-
 import { z } from "zod";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-const devAgent = new https.Agent({
-  rejectUnauthorized: false,
-});
 
 const userSchema = z.object({
   id: z.string(),
@@ -45,10 +39,14 @@ export type LoginDto = {
 
 const messageSchema = z.object({
   id: z.string(),
+  chatId: z.string(), // Добавляем недостающее поле
   content: z.string(),
   createdAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
   sender: z.object({ id: z.string(), name: z.string().nullable() }),
 });
+
+export const messagesResponseSchema = z.array(messageSchema);
+export type Message = z.infer<typeof messageSchema>;
 
 const participantSchema = z.object({
   user: z.object({ id: z.string(), name: z.string().nullable() }),
@@ -66,12 +64,8 @@ export const chatsResponseSchema = z.array(chatSchema);
 
 export type Chat = z.infer<typeof chatSchema>;
 
-interface NodeFetchRequestInit extends RequestInit {
-  agent?: import("https").Agent;
-}
-
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const fetchOptions: NodeFetchRequestInit = {
+  const fetchOptions: RequestInit & { agent?: object } = {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -80,8 +74,11 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
   };
 
   // Node-only dev agent
-  if (typeof window === "undefined" && process.env.NODE_ENV === "development") {
-    fetchOptions.agent = devAgent;
+  if (process.versions?.node && process.env.NODE_ENV === "development") {
+    const https = await import("node:https");
+    fetchOptions.agent = new https.Agent({
+      rejectUnauthorized: false,
+    });
   }
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
 
@@ -119,11 +116,36 @@ export const authApi = {
   },
 };
 
+const paginatedMessagesSchema = z.object({
+  messages: messagesResponseSchema,
+  nextCursor: z.string().nullable(),
+});
+
 export const chatApi = {
   async getMyChats(token: string): Promise<Chat[]> {
     const data = await fetchApi("/chats/my", {
       headers: { Authorization: `Bearer ${token}` },
     });
     return chatsResponseSchema.parse(data);
+  },
+
+  async getMessages(
+    chatId: string,
+    cursor?: string,
+    limit = 15,
+  ): Promise<{ messages: Message[]; nextCursor: string | null }> {
+    const url = new URL(`/api/messages/${chatId}`, window.location.origin);
+    url.searchParams.append("limit", String(limit));
+    if (cursor) {
+      url.searchParams.append("cursor", cursor);
+    }
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to fetch messages");
+    }
+    const data = await response.json();
+    return paginatedMessagesSchema.parse(data);
   },
 };

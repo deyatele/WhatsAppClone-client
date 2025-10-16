@@ -1,24 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
+import { Loader } from "../components/Loader";
 import { useSocket } from "../components/SocketProvider";
 import { useUser } from "../components/UserProvider";
 import type { Chat } from "../lib/api";
+import { chatApi } from "../lib/api";
 import { useChatStore } from "../lib/store";
 import { formatTimestamp } from "../lib/utils";
-import { webRTCManager } from "../lib/WebRTCManager";
 
-interface Message {
-  id: string;
-  content: string;
-  createdAt: string;
-  chatId: string;
-  sender: {
-    id: string;
-    name: string | null;
-  };
-}
+// Хук, который использует useLayoutEffect на клиенте и useEffect на сервере
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const Welcome = () => (
   <div className="h-full flex flex-col items-center justify-center text-center bg-gray-900">
@@ -30,76 +30,142 @@ const Welcome = () => (
 );
 
 export const ChatWindow = () => {
-  const { activeChatId, messages, setMessages, addMessage, chats } =
-    useChatStore();
-  const { socket } = useSocket();
   const { userId } = useUser();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [newMessage, setNewMessage] = useState("");
-  const [isCallDropdownOpen, setIsCallDropdownOpen] = useState(false);
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const callDropdownRef = useRef<null | HTMLDivElement>(null);
+  const { socket } = useSocket();
+  const store = useChatStore();
 
-  // Прокрутка к последнему сообщению
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
-  };
-  useEffect(scrollToBottom);
+  const { activeChatId, chats, messages, pagination } = store;
+  const activeChatMessages = messages[activeChatId || ""] || [];
+  const messageCount = activeChatMessages.length;
 
-  // Закрытие дропдауна при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        callDropdownRef.current &&
-        !callDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsCallDropdownOpen(false);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
+  const scrollStateRef = useRef({
+    oldScrollHeight: 0,
+    shouldAdjustScroll: false,
+  });
+
+  const loadMessages = useCallback(
+    async (isInitial = false) => {
+      const currentPagination = useChatStore.getState().pagination[activeChatId || ""] || {
+        hasMore: true,
+      };
+
+      if (isLoadingRef.current || !activeChatId || !currentPagination.hasMore) {
+        return;
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+      isLoadingRef.current = true;
+      store.setPaginationState(activeChatId, { isLoading: true });
 
-  // Загрузка истории сообщений
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!activeChatId) return;
-      setLoading(true);
-      setError(null);
       try {
-        const response = await fetch(`/api/messages/${activeChatId}`);
-        if (!response.ok) throw new Error("Не удалось загрузить сообщения");
-        const data = await response.json();
-        setMessages(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Произошла ошибка");
+        const cursor = isInitial ? undefined : currentPagination.cursor;
+        const { messages: newMessages, nextCursor } = await chatApi.getMessages(
+          activeChatId,
+          cursor,
+          15,
+        );
+
+        const chronologicalMessages = newMessages.reverse();
+
+        if (isInitial) {
+          store.setInitialMessages(activeChatId, chronologicalMessages);
+        } else {
+          store.addMessagesToStart(activeChatId, chronologicalMessages);
+        }
+
+        store.setPaginationState(activeChatId, {
+          cursor: nextCursor ?? undefined,
+          hasMore: nextCursor !== null,
+        });
+      } catch (error) {
+        console.error("Failed to load messages:", error);
       } finally {
-        setLoading(false);
+        isLoadingRef.current = false;
+        store.setPaginationState(activeChatId, { isLoading: false });
       }
-    };
-    fetchMessages();
-  }, [activeChatId, setMessages]);
+    },
+    [activeChatId, store],
+  );
 
-  // Присоединение к комнате и подписка на новые сообщения
   useEffect(() => {
-    if (!socket || !activeChatId) return;
-    socket.emit("chat:join", { chatId: activeChatId });
-    const handleNewMessage = (message: Message) => {
-      if (message.chatId === useChatStore.getState().activeChatId) {
-        addMessage(message);
+    if (!isInitialLoadComplete) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const chatContainer = chatContainerRef.current;
+          if (chatContainer) {
+            scrollStateRef.current = {
+              oldScrollHeight: chatContainer.scrollHeight,
+              shouldAdjustScroll: true,
+            };
+          }
+          loadMessages();
+        }
+      },
+      {
+        root: chatContainerRef.current,
+        threshold: 1.0,
+      },
+    );
+
+    const loaderElement = loaderRef.current;
+    if (loaderElement) {
+      observer.observe(loaderElement);
+    }
+
+    return () => {
+      if (loaderElement) {
+        observer.unobserve(loaderElement);
       }
     };
-    socket.on("message:new", handleNewMessage);
-    return () => {
-      socket.off("message:new", handleNewMessage);
-    };
-  }, [socket, activeChatId, addMessage]);
+  }, [isInitialLoadComplete, loadMessages]);
 
-  const handleInitiateCall = async () => {
-    if (!otherUser?.id) return;
-    await webRTCManager.initiateCall(otherUser.id);
-  };
+  useEffect(() => {
+    if (activeChatId) {
+      setIsInitialLoadComplete(false);
+      const hasMessages = useChatStore.getState().messages[activeChatId]?.length > 0;
+      if (!hasMessages) {
+        loadMessages(true).then(() => {
+          setIsInitialLoadComplete(true);
+        });
+      } else {
+        setIsInitialLoadComplete(true);
+      }
+    }
+  }, [activeChatId, loadMessages]);
+
+  useIsomorphicLayoutEffect(() => {
+    if (messageCount === 0) return;
+
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return;
+
+    const { oldScrollHeight, shouldAdjustScroll } = scrollStateRef.current;
+
+    if (shouldAdjustScroll) {
+      const newScrollHeight = chatContainer.scrollHeight;
+      chatContainer.scrollTop = newScrollHeight - oldScrollHeight;
+      scrollStateRef.current.shouldAdjustScroll = false;
+    } else {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }, [messageCount]);
+
+  useEffect(() => {
+    if (socket && activeChatId) {
+      socket.emit("chat:join", { chatId: activeChatId });
+
+      return () => {
+        socket.emit("chat:leave", { chatId: activeChatId });
+      };
+    }
+  }, [socket, activeChatId]);
+
+  const [newMessage, setNewMessage] = useState("");
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,185 +178,58 @@ export const ChatWindow = () => {
     return <Welcome />;
   }
 
-  const activeChat: Chat = chats.find((chat: Chat) => chat.id === activeChatId);
+  const activeChat: Chat | undefined = chats.find((chat) => chat.id === activeChatId);
   const otherUser = activeChat?.participants.find(
     (p) => p.user.id !== userId,
   )?.user;
-  const lastMessage =
-    messages[messages.length - 1] || activeChat?.messages?.[0];
+
+  const lastMessage = activeChatMessages[activeChatMessages.length - 1];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-900">
       <div className="p-3 border-b border-gray-700 bg-gray-800 flex items-center">
         <div>
-          <h2 className="text-xl font-bold">{otherUser?.name || "Чат"}</h2>
+          <h2 className="text-xl font-bold text-white">{otherUser?.name || "Чат"}</h2>
           {lastMessage && (
             <p className="text-xs text-gray-400">
               был(-а) в {formatTimestamp(lastMessage.createdAt)}
             </p>
           )}
         </div>
-        <div className="ml-auto flex items-center gap-x-2 text-gray-400">
-          <div className="relative" ref={callDropdownRef}>
-            <button
-              onClick={() => setIsCallDropdownOpen((prev) => !prev)}
-              className="p-2 rounded-full hover:bg-gray-700 hover:text-white flex items-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="2"
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
-                />
-              </svg>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="2"
-                stroke="currentColor"
-                className="w-4 h-4 ml-1"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                />
-              </svg>
-            </button>
-            {isCallDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg z-10">
-                <button
-                  onClick={() => {
-                    handleInitiateCall();
-                    setIsCallDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600 flex items-center"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    className="w-5 h-5 mr-3"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
-                    />
-                  </svg>
-                  Видеозвонок
-                </button>
-                <button
-                  onClick={() => {
-                    handleInitiateCall();
-                    setIsCallDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600 flex items-center"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    className="w-5 h-5 mr-3"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 6.75z"
-                    />
-                  </svg>
-                  Аудиозвонок
-                </button>
+      </div>
+
+      <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto">
+        <div ref={loaderRef}>
+          {pagination[activeChatId || ""]?.isLoading && <Loader />}
+        </div>
+        <div className="space-y-2">
+          {activeChatMessages.map((msg) => {
+            const isCurrentUser = msg.sender.id === userId;
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`p-3 rounded-lg max-w-md ${isCurrentUser ? "bg-green-800" : "bg-gray-700"} text-white`}>
+                  {!isCurrentUser && (
+                    <p className="text-sm font-bold text-green-400">
+                      {msg.sender?.name || "User"}
+                    </p>
+                  )}
+                  <p className="break-words">{msg.content}</p>
+                  <p className="text-xs text-right text-gray-400 mt-1">
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-          <button
-            className="p-2 rounded-full hover:bg-gray-700 hover:text-white"
-            title="Поиск по чату"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              />
-            </svg>
-          </button>
-          <button
-            className="p-2 rounded-full hover:bg-gray-700 hover:text-white"
-            title="Другие опции"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
-              />
-            </svg>
-          </button>
+            );
+          })}
         </div>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
-        {loading && <p>Загрузка сообщений...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && (
-          <div className="space-y-2">
-            {messages.map((msg) => {
-              const isCurrentUser = msg.sender.id === userId;
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`p-3 rounded-lg max-w-md ${isCurrentUser ? "bg-green-800" : "bg-gray-700"}`}
-                  >
-                    {!isCurrentUser && (
-                      <p className="text-sm font-bold text-green-400">
-                        {msg.sender?.name || "User"}
-                      </p>
-                    )}
-                    <p>{msg.content}</p>
-                    <p className="text-xs text-right text-gray-400 mt-1">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </div>
+
       <form onSubmit={handleSendMessage} className="p-4 bg-gray-800">
         <input
           type="text"
