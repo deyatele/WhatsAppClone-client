@@ -3,30 +3,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useState } from "react";
-import type { SubmitHandler, FieldValues } from "react-hook-form";
+import type { Path, Resolver, SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import type { z } from "zod";
-import { Loader } from "./Loader";
+import type { ZodObject, ZodRawShape, z } from "zod";
 
-// Определяем типы для пропсов
-interface FormField {
-  name: string;
-  label: string;
-  type: "text" | "password" | "email" | "tel";
-  placeholder?: string;
-}
-
-interface AuthFormProps<T extends FieldValues> {
-  formFields: FormField[];
-  validationSchema: z.Schema<T>;
-  onSubmitAction: (data: T) => Promise<any>;
+interface AuthFormProps<S extends ZodObject<ZodRawShape>> {
+  formFields: Array<{
+    name: Path<z.input<S>>;
+    label: string;
+    type: "text" | "password" | "email" | "tel";
+    placeholder?: string;
+  }>;
+  validationSchema: S;
+  onSubmitAction: (
+    data: z.output<S>,
+  ) => Promise<undefined | { success: boolean; error?: string }>;
   formTitle: string;
   buttonText: string;
   linkText: string;
   linkHref: string;
 }
 
-export function AuthForm<T extends FieldValues>({
+export function AuthForm<S extends ZodObject<ZodRawShape>>({
   formFields,
   validationSchema,
   onSubmitAction,
@@ -34,17 +32,23 @@ export function AuthForm<T extends FieldValues>({
   buttonText,
   linkText,
   linkHref,
-}: AuthFormProps<T>) {
+}: AuthFormProps<S>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  type InputValues = z.input<S>;
+  type OutputValues = z.output<S>;
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<T>({ resolver: zodResolver(validationSchema) });
+  } = useForm<InputValues>({
+    resolver: zodResolver(validationSchema) as unknown as Resolver<InputValues>,
+  });
 
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<T> = async (data) => {
+  const onSubmit: SubmitHandler<OutputValues> = async (data) => {
     setServerError(null);
     setIsSubmitting(true);
     try {
@@ -52,7 +56,7 @@ export function AuthForm<T extends FieldValues>({
       if (result && !result.success) {
         setServerError(result.error || "Произошла неизвестная ошибка");
       }
-    } catch (error) {
+    } catch {
       setServerError("Произошла непредвиденная ошибка.");
     } finally {
       setIsSubmitting(false);
@@ -65,7 +69,12 @@ export function AuthForm<T extends FieldValues>({
         <h1 className="text-2xl font-bold text-center text-white">
           {formTitle}
         </h1>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(
+            onSubmit as unknown as SubmitHandler<InputValues>,
+          )}
+          className="space-y-6"
+        >
           {formFields.map((field) => (
             <div key={field.name}>
               <label
@@ -77,7 +86,7 @@ export function AuthForm<T extends FieldValues>({
               <input
                 id={field.name}
                 type={field.type}
-                {...register(field.name as any)}
+                {...register(field.name)}
                 className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                 placeholder={field.placeholder}
                 disabled={isSubmitting}
@@ -100,7 +109,7 @@ export function AuthForm<T extends FieldValues>({
               disabled={isSubmitting}
               className="w-full flex justify-center items-center px-4 py-2 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-800 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? <Loader /> : buttonText}
+               {buttonText}
             </button>
           </div>
         </form>
@@ -108,7 +117,8 @@ export function AuthForm<T extends FieldValues>({
           {linkText}{" "}
           <Link
             href={linkHref}
-            className={`font-medium text-green-500 ${isSubmitting ? "pointer-events-none" : "hover:underline"}`}>
+            className={`font-medium text-green-500 ${isSubmitting ? "pointer-events-none" : "hover:underline"}`}
+          >
             {linkHref === "/login" ? "Войти" : "Зарегистрироваться"}
           </Link>
         </p>

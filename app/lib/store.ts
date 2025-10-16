@@ -1,9 +1,10 @@
 import { create } from "zustand";
 
 import type { Chat, Message } from "../lib/api";
+export type { Message };
 
 // Состояние пагинации для каждого чата
-interface PaginationState {
+export interface PaginationState {
   cursor?: string;
   hasMore: boolean;
   isLoading: boolean;
@@ -11,9 +12,7 @@ interface PaginationState {
 
 interface ChatState {
   activeChatId: string | null;
-  // Сообщения теперь хранятся в объекте по chatId
   messages: Record<string, Message[]>;
-  // Состояние пагинации тоже хранится по chatId
   pagination: Record<string, PaginationState>;
   chats: Chat[];
   callState: string;
@@ -26,17 +25,11 @@ interface ChatState {
 
   // Actions
   setActiveChatId: (id: string | null) => void;
-  // Инициализация сообщений для чата
   setInitialMessages: (chatId: string, messages: Message[]) => void;
-  // Добавление старых сообщений в начало
   addMessagesToStart: (chatId: string, messages: Message[]) => void;
-  // Добавление нового сообщения в конец
   addMessageToEnd: (message: Message) => void;
   setChats: (chats: Chat[]) => void;
-  // Управление состоянием пагинации
   setPaginationState: (chatId: string, state: Partial<PaginationState>) => void;
-
-  // WebRTC actions...
   setCallState: (callState: string) => void;
   setLocalStream: (stream: MediaStream | null) => void;
   setRemoteStream: (stream: MediaStream | null) => void;
@@ -83,9 +76,8 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => {
       const { chatId } = message;
       const chatMessages = state.messages[chatId] || [];
-      // Проверяем, существует ли уже такое сообщение
       if (chatMessages.some((m) => m.id === message.id)) {
-        return state; // Если сообщение уже есть, ничего не меняем
+        return state;
       }
       return {
         messages: {
@@ -108,7 +100,6 @@ export const useChatStore = create<ChatState>((set) => ({
       },
     })),
 
-  // WebRTC state and actions
   setCallState: (callState: string) => set({ callState }),
   setLocalStream: (stream) => set({ localStream: stream }),
   setRemoteStream: (stream) => set({ remoteStream: stream }),

@@ -37,19 +37,37 @@ export type LoginDto = {
   password: string;
 };
 
+const messageSenderSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  phone: z.string().optional(),
+  email: z.string().nullable().optional(),
+});
+
 const messageSchema = z.object({
   id: z.string(),
-  chatId: z.string(), // Добавляем недостающее поле
+  chatId: z.string(),
   content: z.string(),
   createdAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
-  sender: z.object({ id: z.string(), name: z.string().nullable() }),
+  updatedAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
+  deletedSender: z.boolean(),
+  deletedReceiver: z.boolean(),
+  sender: messageSenderSchema, // Use the simplified sender schema
+  senderId: z.string(),
 });
 
 export const messagesResponseSchema = z.array(messageSchema);
 export type Message = z.infer<typeof messageSchema>;
 
+const participantUserSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  phone: z.string().optional(),
+  email: z.string().nullable().optional(),
+});
+
 const participantSchema = z.object({
-  user: z.object({ id: z.string(), name: z.string().nullable() }),
+  user: participantUserSchema, // Use the simplified participant user schema
 });
 
 const chatSchema = z.object({
@@ -57,7 +75,7 @@ const chatSchema = z.object({
   createdAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
   updatedAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
   participants: z.array(participantSchema),
-  messages: z.array(messageSchema),
+  messages: z.array(messageSchema).optional(),
 });
 
 export const chatsResponseSchema = z.array(chatSchema);
@@ -86,8 +104,7 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
     const errorData = await response.json();
     throw new Error(errorData.message || "Что-то пошло не так");
   }
-
-  return response.json();
+  return await response.json();  
 }
 
 export const authApi = {

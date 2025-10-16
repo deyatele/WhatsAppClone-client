@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { ZodError } from "zod"; // Import ZodError
 
 import { ChatList } from "./components/ChatList";
 import { ChatWindow } from "./components/ChatWindow";
@@ -19,6 +20,9 @@ async function getChats(): Promise<Chat[]> {
     return chats;
   } catch (error) {
     console.error("Failed to fetch chats:", error);
+    if (error instanceof ZodError) {
+      console.error("Zod validation issues:", error.issues);
+    }
     return [];
   }
 }

@@ -1,9 +1,8 @@
 "use client";
 
 import { z } from "zod";
-
-import { registerAction } from "../lib/clientActions";
 import { AuthForm } from "../components/AuthForm";
+import { registerAction } from "../lib/clientActions";
 
 // Схема валидации для формы регистрации
 const registerSchema = z.object({
@@ -14,7 +13,11 @@ const registerSchema = z.object({
 });
 
 // Определение полей для формы
-const formFields = [
+const formFields: Array<{
+  name: "phone" | "password" | "name" | "email";
+  label: string;
+  type: "tel" | "password" | "text" | "email";
+}> = [
   {
     name: "phone",
     label: "Номер телефона",

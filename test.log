@@ -1,0 +1,327 @@
+page.tsx:22  Server  Failed to fetch chats: ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "phone"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "email"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "boolean",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "isOnline"
+    ],
+    "message": "Invalid input: expected boolean, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "lastSeen"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "createdAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      0,
+      "user",
+      "updatedAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "phone"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "email"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "boolean",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "isOnline"
+    ],
+    "message": "Invalid input: expected boolean, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "lastSeen"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "createdAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      1,
+      "user",
+      "updatedAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "phone"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "email"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "boolean",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "isOnline"
+    ],
+    "message": "Invalid input: expected boolean, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "lastSeen"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "createdAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      0,
+      "participants",
+      2,
+      "user",
+      "updatedAt"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+    at Object.getMyChats (api.ts:139:32)
+    at getChats (page.tsx:19:27)
+    at Home (page.tsx:31:17)
+    at resolveErrorDev (react-server-dom-turbopack-client.browser.development.js:2326:46)
+    at getOutlinedModel (react-server-dom-turbopack-client.browser.development.js:1688:22)
+    at parseModelString (react-server-dom-turbopack-client.browser.development.js:1889:15)
+    at Object.<anonymous> (react-server-dom-turbopack-client.browser.development.js:2985:18)
+    at JSON.parse (<anonymous>)
+    at initializeModelChunk (react-server-dom-turbopack-client.browser.development.js:1235:26)
+    at getOutlinedModel (react-server-dom-turbopack-client.browser.development.js:1623:11)
+    at parseModelString (react-server-dom-turbopack-client.browser.development.js:1982:15)
+    at Array.<anonymous> (react-server-dom-turbopack-client.browser.development.js:2985:18)
+    at JSON.parse (<anonymous>)
+    at initializeModelChunk (react-server-dom-turbopack-client.browser.development.js:1235:26)
+    at resolveConsoleEntry (react-server-dom-turbopack-client.browser.development.js:2613:13)
+    at processFullStringRow (react-server-dom-turbopack-client.browser.development.js:2853:11)
+    at processFullBinaryRow (react-server-dom-turbopack-client.browser.development.js:2755:7)
+    at processBinaryChunk (react-server-dom-turbopack-client.browser.development.js:2958:15)
+    at progress (react-server-dom-turbopack-client.browser.development.js:3222:13)
+overrideMethod @ hook.js:608
+error @ intercept-console-error.ts:44
+getChats @ page.tsx:22
+Home @ page.tsx:31
+react_stack_bottom_frame @ react-server-dom-turbopack-client.browser.development.js:3405
+resolveConsoleEntry @ react-server-dom-turbopack-client.browser.development.js:2615
+processFullStringRow @ react-server-dom-turbopack-client.browser.development.js:2853
+processFullBinaryRow @ react-server-dom-turbopack-client.browser.development.js:2755
+processBinaryChunk @ react-server-dom-turbopack-client.browser.development.js:2958
+progress @ react-server-dom-turbopack-client.browser.development.js:3222
+<Home>
+Function.all @ VM4789 <anonymous>:1
+initializeFakeTask @ react-server-dom-turbopack-client.browser.development.js:2518
+initializeDebugInfo @ react-server-dom-turbopack-client.browser.development.js:2543
+initializeDebugChunk @ react-server-dom-turbopack-client.browser.development.js:1182
+processFullStringRow @ react-server-dom-turbopack-client.browser.development.js:2839
+processFullBinaryRow @ react-server-dom-turbopack-client.browser.development.js:2755
+processBinaryChunk @ react-server-dom-turbopack-client.browser.development.js:2958
+progress @ react-server-dom-turbopack-client.browser.development.js:3222
+"use server"
+ResponseInstance @ react-server-dom-turbopack-client.browser.development.js:2030
+createResponseFromOptions @ react-server-dom-turbopack-client.browser.development.js:3083
+exports.createFromReadableStream @ react-server-dom-turbopack-client.browser.development.js:3460
+__TURBOPACK__module__evaluation__ @ app-index.tsx:156
+(анонимная) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateModuleFromParent @ dev-base.ts:162
+commonJsRequire @ runtime-utils.ts:366
+(анонимная) @ app-next-turbopack.ts:11
+(анонимная) @ app-bootstrap.ts:76
+loadScriptsInSequence @ app-bootstrap.ts:22
+appBootstrap @ app-bootstrap.ts:58
+__TURBOPACK__module__evaluation__ @ app-next-turbopack.ts:10
+(анонимная) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateRuntimeModule @ dev-base.ts:128
+registerChunk @ runtime-backend-dom.ts:57
+await in registerChunk
+registerChunk @ dev-base.ts:1146
+(анонимная) @ dev-backend-dom.ts:126
+(анонимная) @ dev-backend-dom.ts:126
+page.tsx:24  Server  Zod validation issues: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+overrideMethod @ hook.js:608
+error @ intercept-console-error.ts:44
+getChats @ page.tsx:24
+Home @ page.tsx:31
+react_stack_bottom_frame @ react-server-dom-turbopack-client.browser.development.js:3405
+resolveConsoleEntry @ react-server-dom-turbopack-client.browser.development.js:2615
+processFullStringRow @ react-server-dom-turbopack-client.browser.development.js:2853
+processFullBinaryRow @ react-server-dom-turbopack-client.browser.development.js:2755
+processBinaryChunk @ react-server-dom-turbopack-client.browser.development.js:2958
+progress @ react-server-dom-turbopack-client.browser.development.js:3222
+<Home>
+Function.all @ VM4789 <anonymous>:1
+initializeFakeTask @ react-server-dom-turbopack-client.browser.development.js:2518
+initializeDebugInfo @ react-server-dom-turbopack-client.browser.development.js:2543
+initializeDebugChunk @ react-server-dom-turbopack-client.browser.development.js:1182
+processFullStringRow @ react-server-dom-turbopack-client.browser.development.js:2839
+processFullBinaryRow @ react-server-dom-turbopack-client.browser.development.js:2755
+processBinaryChunk @ react-server-dom-turbopack-client.browser.development.js:2958
+progress @ react-server-dom-turbopack-client.browser.development.js:3222
+"use server"
+ResponseInstance @ react-server-dom-turbopack-client.browser.development.js:2030
+createResponseFromOptions @ react-server-dom-turbopack-client.browser.development.js:3083
+exports.createFromReadableStream @ react-server-dom-turbopack-client.browser.development.js:3460
+__TURBOPACK__module__evaluation__ @ app-index.tsx:156
+(анонимная) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateModuleFromParent @ dev-base.ts:162
+commonJsRequire @ runtime-utils.ts:366
+(анонимная) @ app-next-turbopack.ts:11
+(анонимная) @ app-bootstrap.ts:76
+loadScriptsInSequence @ app-bootstrap.ts:22
+appBootstrap @ app-bootstrap.ts:58
+__TURBOPACK__module__evaluation__ @ app-next-turbopack.ts:10
+(анонимная) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateRuntimeModule @ dev-base.ts:128
+registerChunk @ runtime-backend-dom.ts:57
+await in registerChunk
+registerChunk @ dev-base.ts:1146
+(анонимная) @ dev-backend-dom.ts:126
+(анонимная) @ dev-backend-dom.ts:126
+SocketProvider.tsx:44 ✅ WebSocket connected: _hgEi6Wvhe_SJlbIAAAL
+turbopack-hot-reloader-common.ts:43 [Fast Refresh] rebuilding
+report-hmr-latency.ts:26 [Fast Refresh] done in 127ms
