@@ -44,13 +44,13 @@ class WebRTCManager {
     this.socket.on("call:answer", this._handleAnswer.bind(this));
     this.socket.on("call:candidate", this._handleIceCandidate.bind(this));
     this.socket.on("call:ended", this.closeConnection.bind(this));
-    this.socket.on("call:accepted", (payload) => {      
+    this.socket.on("call:accepted", (payload) => {
       if (payload?.id) this.currentCallId = payload.id;
       log(
         `Debug:Call accepted by ${payload.from}, callId=${this.currentCallId}`,
       );
     });
-    this.socket.on("call:started", (payload) => {     
+    this.socket.on("call:started", (payload) => {
       if (payload?.call?.id) this.currentCallId = payload.call.id;
       log(`Debug:Call started, callId=${this.currentCallId}`);
     });
@@ -94,6 +94,9 @@ class WebRTCManager {
         throw new Error("Failed to fetch TURN credentials");
       }
       const turnConfig = await response.json();
+      log(
+        `Debug:✅ Obtained TURN configuration" ${JSON.stringify(turnConfig)}`,
+      );
       return {
         iceServers: [
           // { urls: 'stun:stun.l.google.com:19302' },
@@ -134,7 +137,7 @@ class WebRTCManager {
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.socket && this.currentCallUserId) {
-        this.socket.emit("Debug:call:candidate", {
+        this.socket.emit("call:candidate", {
           to: this.currentCallUserId,
           candidate: event.candidate,
         });
@@ -195,7 +198,7 @@ class WebRTCManager {
       }
     } catch (error) {
       log(
-        `❌ ICE restart failed: ${
+        `Error:❌ ICE restart failed: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );

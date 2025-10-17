@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-import type { Chat } from "../lib/api";
 import { useChatStore } from "../lib/store";
+import type { Chat } from "../types";
 
 function StoreInitializer({ chats }: { chats: Chat[] }) {
   const setChats = useChatStore((state) => state.setChats);

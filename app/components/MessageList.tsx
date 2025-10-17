@@ -1,6 +1,6 @@
 "use client";
 
-import type { Message as MessageType, PaginationState } from "../lib/store";
+import type { Message as MessageType, PaginationState } from "../types";
 import { Loader } from "./Loader";
 import { Message } from "./Message";
 import { useUser } from "./UserProvider";

@@ -1,37 +1,35 @@
-export const formatTimestamp = (timestamp?: string) => {
-  if (!timestamp) return "";
+export const formaterDate = (dateString: string): string => {
+  const dateNow = new Date();
+  const yesterday = new Date(dateNow);
+  yesterday.setDate(dateNow.getDate() - 1);
+  try {
+    if (!dateString) throw new Error("Нет данных для формирования даты");
 
-  const date = new Date(timestamp);
-  const now = new Date();
+    const dateDiff = (createdAt: string): boolean =>
+      Date.now() - new Date(createdAt).getTime() > 864e5; // 24 * 60 * 60 * 1000;
 
-  const yesterday = new Date();
-  yesterday.setDate(now.getDate() - 1);
-
-  const timeFormat: Intl.DateTimeFormatOptions = {
-    hour: "2-digit",
-    minute: "2-digit",
-  };
-
-  const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-
-  const isYesterday =
-    date.getFullYear() === yesterday.getFullYear() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getDate() === yesterday.getDate();
-
-  if (isToday) {
-    return `сегодня в ${date.toLocaleTimeString([], timeFormat)}`;
+    return `${yesterday.getDate() === new Date(dateString).getDate() ? "вчера" : new Date(dateString).getDate() === dateNow.getDate() ? "сегодня" : ""} ${new Date(
+      dateString,
+    ).toLocaleTimeString([], {
+      day:
+        dateDiff(dateString) &&
+        yesterday.getDate() !== new Date(dateString).getDate()
+          ? "2-digit"
+          : undefined,
+      month:
+        dateDiff(dateString) &&
+        yesterday.getDate() !== new Date(dateString).getDate()
+          ? "long"
+          : undefined,
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  } catch (error) {
+    console.log(
+      "Ошибка в получении даты. Нет данных или не правильный формат",
+      `Переданные данные: ${dateString}`,
+      error,
+    );
+    return "";
   }
-
-  if (isYesterday) {
-    return `вчера в ${date.toLocaleTimeString([], timeFormat)}`;
-  }
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
 };

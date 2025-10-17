@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -10,7 +9,7 @@ import {
 } from "react";
 import { useSocket } from "../../components/SocketProvider";
 import { useUser } from "../../components/UserProvider";
-import type { Chat } from "../api";
+import type { Chat } from "../../types";
 import { chatApi } from "../api";
 import { useChatStore } from "../store";
 
@@ -56,7 +55,7 @@ export const useChat = () => {
         const { messages: newMessages, nextCursor } = await chatApi.getMessages(
           activeChatId,
           cursor,
-          15
+          15,
         );
 
         const chronologicalMessages = newMessages.reverse();
@@ -78,7 +77,7 @@ export const useChat = () => {
         store.setPaginationState(activeChatId, { isLoading: false });
       }
     },
-    [activeChatId, store]
+    [activeChatId, store],
   );
 
   useEffect(() => {
@@ -100,7 +99,7 @@ export const useChat = () => {
       {
         root: chatContainerRef.current,
         threshold: 1.0,
-      }
+      },
     );
 
     const loaderElement = loaderRef.current;
@@ -165,10 +164,10 @@ export const useChat = () => {
   };
 
   const activeChat: Chat | undefined = chats.find(
-    (chat) => chat.id === activeChatId
+    (chat) => chat.id === activeChatId,
   );
   const otherUser = activeChat?.participants.find(
-    (p) => p.user.id !== userId
+    (p) => p.user.id !== userId,
   )?.user;
 
   return {

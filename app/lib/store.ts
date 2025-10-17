@@ -1,14 +1,7 @@
 import { create } from "zustand";
-
-import type { Chat, Message } from "../lib/api";
-export type { Message };
+import type { Chat, Message, PaginationState } from "../types";
 
 // Состояние пагинации для каждого чата
-export interface PaginationState {
-  cursor?: string;
-  hasMore: boolean;
-  isLoading: boolean;
-}
 
 interface ChatState {
   activeChatId: string | null;
@@ -72,20 +65,25 @@ export const useChatStore = create<ChatState>((set) => ({
       },
     })),
 
-  addMessageToEnd: (message) =>
+  addMessageToEnd: (message) => {
     set((state) => {
       const { chatId } = message;
       const chatMessages = state.messages[chatId] || [];
       if (chatMessages.some((m) => m.id === message.id)) {
         return state;
       }
+      const chat = state.chats.find((chat) => chat.id === chatId);
+      if (!chat) return state;
+      chat.messages = [message, ...(chat.messages || [])];
+
       return {
         messages: {
           ...state.messages,
           [chatId]: [...chatMessages, message],
         },
       };
-    }),
+    });
+  },
 
   setChats: (chats) => set({ chats }),
 

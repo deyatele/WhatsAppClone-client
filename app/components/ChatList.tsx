@@ -1,11 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-
-import type { Chat } from "../lib/api";
 import { logoutAction } from "../lib/serverActions";
 import { useChatStore } from "../lib/store";
-import { formatTimestamp } from "../lib/utils";
+import { formaterDate } from "../lib/utils";
+import type { Chat } from "../types";
 import { LogPanel } from "./LogPanel";
 import { useUser } from "./UserProvider";
 
@@ -18,12 +17,11 @@ export const ChatList = () => {
     await logoutAction();
     router.push("/login");
   };
-
+  
   const getOtherParticipant = (chat: Chat) => {
     if (!userId) return null;
     return chat.participants.find((p) => p.user.id !== userId)?.user;
   };
-
   return (
     <div className="h-full bg-gray-800 border-r border-gray-700 flex flex-col">
       <div className="p-4 border-b border-gray-700 flex justify-between items-center">
@@ -42,7 +40,6 @@ export const ChatList = () => {
             const otherUser = getOtherParticipant(chat);
             const lastMessage = chat.messages?.[0];
             const isActive = chat.id === activeChatId;
-
             return (
               <div
                 key={chat.id}
@@ -54,7 +51,7 @@ export const ChatList = () => {
                     {otherUser?.name || "Неизвестный"}
                   </p>
                   <p className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                    {formatTimestamp(lastMessage?.createdAt)}
+                    {lastMessage && formaterDate(lastMessage.createdAt)}
                   </p>
                 </div>
                 <p className="text-sm text-gray-400 truncate">

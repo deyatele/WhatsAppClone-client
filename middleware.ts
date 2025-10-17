@@ -12,7 +12,6 @@ async function attemptRefresh(request: NextRequest): Promise<string | null> {
         Cookie: `refreshToken=${refreshToken}`,
       },
     });
-
     if (!response.ok) {
       return null;
     }

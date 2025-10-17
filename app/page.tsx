@@ -4,8 +4,8 @@ import { ZodError } from "zod"; // Import ZodError
 import { ChatList } from "./components/ChatList";
 import { ChatWindow } from "./components/ChatWindow";
 import StoreInitializer from "./components/StoreInitializer";
-import type { Chat } from "./lib/api";
 import { chatApi } from "./lib/api";
+import type { Chat } from "./types";
 
 async function getChats(): Promise<Chat[]> {
   const cookieStore = await cookies();
