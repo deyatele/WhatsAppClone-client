@@ -5,7 +5,6 @@ import { authApi } from "../../../lib/api";
 export async function POST() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
-
   if (!refreshToken) {
     return NextResponse.json(
       { message: "Refresh token not found" },
@@ -15,7 +14,6 @@ export async function POST() {
 
   try {
     const { accessToken } = await authApi.refresh(refreshToken);
-
     return NextResponse.json({ accessToken });
   } catch (error) {
     console.error("[API/AUTH/REFRESH] Failed:", error);

@@ -4,6 +4,7 @@ import { useChat } from "../lib/hooks/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
+import { useUser } from "./UserProvider";
 import { Welcome } from "./Welcome";
 
 export const ChatWindow = () => {
@@ -17,8 +18,9 @@ export const ChatWindow = () => {
     newMessage,
     setNewMessage,
     handleSendMessage,
+    handleDeleteMessage
   } = useChat();
-
+  const { userId } = useUser();
   if (!activeChatId) {
     return <Welcome />;
   }
@@ -38,6 +40,8 @@ export const ChatWindow = () => {
         loaderRef={loaderRef}
         pagination={currentChatPagination}
         activeChatId={activeChatId}
+        userId={userId}
+        handleDeleteMessage={handleDeleteMessage}
       />
       <MessageInput
         newMessage={newMessage}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { logoutAction } from "../lib/serverActions";
 import { useChatStore } from "../lib/store";
@@ -17,11 +18,12 @@ export const ChatList = () => {
     await logoutAction();
     router.push("/login");
   };
-  
+
   const getOtherParticipant = (chat: Chat) => {
     if (!userId) return null;
     return chat.participants.find((p) => p.user.id !== userId)?.user;
   };
+
   return (
     <div className="h-full bg-gray-800 border-r border-gray-700 flex flex-col">
       <div className="p-4 border-b border-gray-700 flex justify-between items-center">
@@ -29,12 +31,12 @@ export const ChatList = () => {
         <button
           type="button"
           onClick={handleLogout}
-          className="text-sm text-gray-400 hover:text-white"
+          className="text-sm text-gray-400 hover:text-white cursor-pointer"
         >
           Выйти
         </button>
       </div>
-      <div className="overflow-y-auto flex-1">
+      <div className="overflow-y flex-1">
         {chats.length > 0 ? (
           chats.map((chat) => {
             const otherUser = getOtherParticipant(chat);
@@ -43,20 +45,41 @@ export const ChatList = () => {
             return (
               <div
                 key={chat.id}
-                className={`p-4 cursor-pointer border-b border-gray-700 ${isActive ? "bg-gray-600" : "hover:bg-gray-700"}`}
+                className={`p-4 border-b border-gray-700 ${isActive ? "bg-gray-600" : "cursor-pointer hover:bg-gray-700"}`}
                 onClick={() => setActiveChatId(chat.id)}
               >
-                <div className="flex justify-between items-center">
-                  <p className="font-bold">
-                    {otherUser?.name || "Неизвестный"}
-                  </p>
-                  <p className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                    {lastMessage && formaterDate(lastMessage.createdAt)}
-                  </p>
+                <div className="flex gap-3 items-center">
+                  <div className="size-14 flex-none overflow-hidden rounded-full bg-gray-700 flex items-center justify-center">
+                    {otherUser?.avatar ? (
+                      <Image
+                        src={otherUser.avatar}
+                        alt={otherUser?.name ?? "Avatar"}
+                        width={56}
+                        height={56}
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">
+                        {otherUser?.name?.at(0)?.toUpperCase() ?? "U"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col mb-1 w-full">
+                    <div className="flex justify-between items-center ">
+                      <p className="font-bold">
+                        {otherUser?.name || "Неизвестный"}
+                      </p>
+                      <p className="text-sm text-gray-400 whitespace-nowrap ml-2">
+                        {lastMessage && formaterDate(lastMessage.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-center ">
+                      <p className="text-sm text-gray-400 max-w-xs truncate">
+                        {lastMessage?.content || "Пока нет сообщений"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-400 truncate">
-                  {lastMessage?.content || "Пока нет сообщений"}
-                </p>
               </div>
             );
           })
@@ -66,7 +89,9 @@ export const ChatList = () => {
           </div>
         )}
       </div>
-      <LogPanel />
+      <div className="pb-15">
+        <LogPanel />
+      </div>
     </div>
   );
 };

@@ -1,22 +1,15 @@
 import z from "zod";
 import { messageSchema } from "./Messages.types";
-
-
-const participantUserSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  phone: z.string().optional(),
-  email: z.string().nullable().optional(),
-});
+import { userBaseSchema, timestampSchema } from "./Common.types";
 
 const participantSchema = z.object({
-  user: participantUserSchema,
+  user: userBaseSchema,
 });
 
 const chatSchema = z.object({
   id: z.string(),
-  createdAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
-  updatedAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
   participants: z.array(participantSchema),
   messages: z.array(messageSchema).optional(),
 });
@@ -28,7 +21,5 @@ export interface PaginationState {
 }
 
 export const chatsResponseSchema = z.array(chatSchema);
-
 export type Chat = z.infer<typeof chatSchema>;
-
-export type ChatParticipant = z.infer<typeof participantUserSchema>;
+export type ChatParticipant = z.infer<typeof userBaseSchema>;

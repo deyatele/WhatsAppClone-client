@@ -33,7 +33,7 @@ export default async function Home() {
   return (
     <main className="flex h-screen">
       <StoreInitializer chats={chats} />
-      <div className="w-1/3">
+      <div className="w-1/3 ">
         <ChatList />
       </div>
       <div className="w-2/3">

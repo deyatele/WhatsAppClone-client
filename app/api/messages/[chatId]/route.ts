@@ -18,15 +18,13 @@ export async function GET(
     return new NextResponse("Chat ID is required", { status: 400 });
   }
 
-  // Получаем параметры пагинации из URL
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get("cursor");
-  const limit = searchParams.get("limit") || "15"; // Лимит по умолчанию 10
+  const limit = searchParams.get("limit") || "15";
 
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    
-    // Строим URL с параметрами пагинации
+
     const url = new URL(`${API_URL}/messages/chat/${chatId}`);
     url.searchParams.append("limit", limit);
     if (cursor) {
@@ -47,6 +45,7 @@ export async function GET(
     }
 
     const data = await response.json();
+    
     return NextResponse.json(data);
   } catch (error) {
     console.error("Failed to fetch messages:", error);

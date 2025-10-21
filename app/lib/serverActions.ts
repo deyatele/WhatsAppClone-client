@@ -6,18 +6,13 @@ import { redirect } from "next/navigation";
 import type { LoginDto, RegisterDto } from "../lib/api";
 import { authApi } from "../lib/api";
 
-// Используем переменные окружения для времени жизни токенов, приводя их к секундам
-// Убедитесь, что эти переменные заданы в вашем .env файле
+
 const ACCESS_TOKEN_LIFETIME_SEC =
   Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900; // 15 минут
 const REFRESH_TOKEN_LIFETIME_SEC =
   Number(process.env.REFRESH_TOKEN_LIFETIME_SEC) || 604800; // 7 дней
 
-/**
- * Устанавливает accessToken и refreshToken в httpOnly куки.
- * @param accessToken - Токен доступа
- * @param refreshToken - Токен обновления
- */
+
 async function _setAuthCookies(accessToken: string, refreshToken: string) {
   const cookieStore = await cookies();
 
@@ -42,6 +37,9 @@ export async function loginAction(dto: LoginDto) {
   try {
     const data = await authApi.login(dto);
     await _setAuthCookies(data.accessToken, data.refreshToken);
+    return {
+      success: true,
+    };
   } catch (error) {
     console.error("Login Action Failed:", error);
     return {
@@ -49,22 +47,21 @@ export async function loginAction(dto: LoginDto) {
       error: error instanceof Error ? error.message : "Ошибка входа",
     };
   }
-  redirect("/");
 }
 
 export async function registerAction(dto: RegisterDto) {
   try {
-    // 1. Сначала регистрируем пользователя
     await authApi.register(dto);
 
-    // 2. Затем логиним его, чтобы получить токены
     const loginData = await authApi.login({
       identifier: dto.phone,
       password: dto.password,
     });
 
-    // 3. Устанавливаем куки
     await _setAuthCookies(loginData.accessToken, loginData.refreshToken);
+    return {
+      success: true,
+    };
   } catch (error) {
     console.error("Register Action Failed:", error);
     return {
@@ -72,7 +69,6 @@ export async function registerAction(dto: RegisterDto) {
       error: error instanceof Error ? error.message : "Ошибка регистрации",
     };
   }
-  redirect("/");
 }
 
 export async function logoutAction() {

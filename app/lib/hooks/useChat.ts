@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useSocket } from "../../components/SocketProvider";
 import { useUser } from "../../components/UserProvider";
-import type { Chat } from "../../types";
+import type { Chat, Message } from "../../types";
 import { chatApi } from "../api";
 import { useChatStore } from "../store";
 
@@ -149,7 +149,6 @@ export const useChat = () => {
   useEffect(() => {
     if (socket && activeChatId) {
       socket.emit("chat:join", { chatId: activeChatId });
-
       return () => {
         socket.emit("chat:leave", { chatId: activeChatId });
       };
@@ -161,6 +160,14 @@ export const useChat = () => {
     if (!newMessage.trim() || !socket || !activeChatId) return;
     socket.emit("message:send", { chatId: activeChatId, text: newMessage });
     setNewMessage("");
+  };
+
+  const handleDeleteMessage = (
+    messageId: Message["id"],
+    flag: boolean = false,
+  ) => {
+    if (!socket) return;
+    socket.emit("message:delete", { messageId, flag });
   };
 
   const activeChat: Chat | undefined = chats.find(
@@ -181,5 +188,6 @@ export const useChat = () => {
     newMessage,
     setNewMessage,
     handleSendMessage,
+    handleDeleteMessage,
   };
 };

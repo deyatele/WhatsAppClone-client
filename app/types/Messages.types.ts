@@ -1,22 +1,15 @@
 import z from "zod";
-
-
-export const messageSenderSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  phone: z.string().optional(),
-  email: z.string().nullable().optional(),
-});
+import { userBaseSchema, timestampSchema } from "./Common.types";
 
 export const messageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
   content: z.string(),
-  createdAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
-  updatedAt: z.string().refine((val) => !Number.isNaN(Date.parse(val))),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
   deletedSender: z.boolean(),
   deletedReceiver: z.boolean(),
-  sender: messageSenderSchema, // Use the simplified sender schema
+  sender: userBaseSchema,
   senderId: z.string(),
 });
 

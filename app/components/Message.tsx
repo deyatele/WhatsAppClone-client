@@ -1,120 +1,57 @@
 "use client";
 
-import { useState } from "react";
-import { useModal } from "../lib/ModalContext";
+import Image from "next/image";
 import { formaterDate } from "../lib/utils";
 import type { Message as MessageType } from "../types";
+import { DeleteModal } from "./modal/deleteModal";
+import { useModal } from "./modal/ModalContext";
 
 interface MessageProps {
   message: MessageType;
   isCurrentUser: boolean;
+  handleDeleteMessage: (id: string, flag?: boolean) => void;
 }
 
-export const Message = ({ message, isCurrentUser }: MessageProps) => {
+export const Message = ({
+  message,
+  isCurrentUser,
+  handleDeleteMessage,
+}: MessageProps) => {
   const { openModal, closeModal } = useModal();
-  const [deleteForEveryoneChecked, setDeleteForEveryoneChecked] =
-    useState(false);
-
-  const deleteForMe = () => {
-    console.log("Удалить у меня", message.id);
-    closeModal();
-    // TODO: Implement actual deletion for self
-  };
-
-  const deleteForEveryone = () => {
-    console.log(
-      "Удалить у всех",
-      message.id,
-      "Удалить файл:",
-      deleteForEveryoneChecked,
-    );
-    closeModal();
-    // TODO: Implement actual deletion for everyone, considering deleteForEveryoneChecked
-  };
 
   const handleDeleteClick = () => {
-    if (isCurrentUser) {
-      openModal(
-        <div className="p-4 text-white">
-          <h2 className="text-lg font-bold mb-4">Удалить сообщение?</h2>
-          <label className="flex items-center mb-6 cursor-pointer">
-            <input
-              type="checkbox"
-              className="hidden"
-              checked={deleteForEveryoneChecked}
-              onChange={() =>
-                setDeleteForEveryoneChecked(!deleteForEveryoneChecked)
-              }
-            />
-            <div
-              className={`w-5 h-5 border-2 rounded flex items-center justify-center mr-2 transition-all duration-200
-                ${deleteForEveryoneChecked ? "bg-green-500 border-green-500" : "border-gray-400"}`}
-            >
-              {deleteForEveryoneChecked && (
-                <svg
-                  className="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  ></path>
-                </svg>
-              )}
-            </div>
-            <span>Удалить файл с вашего телефона</span>
-          </label>
-          <div className="flex justify-end space-x-3 mt-4">
-            <button
-              className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white transition-colors duration-200"
-              onClick={closeModal}
-            >
-              Отмена
-            </button>
-            <button
-              className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors duration-200"
-              onClick={deleteForEveryone}
-            >
-              Удалить у всех
-            </button>
-          </div>
-        </div>,
-      );
-    } else {
-      openModal(
-        <div className="p-4 text-white">
-          <h2 className="text-lg font-bold mb-4">Удалить сообщение?</h2>
-          <div className="flex justify-end space-x-3 mt-4">
-            <button
-              className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white transition-colors duration-200"
-              onClick={closeModal}
-            >
-              Отмена
-            </button>
-            <button
-              className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors duration-200"
-              onClick={deleteForMe}
-            >
-              Удалить у меня
-            </button>
-          </div>
-        </div>,
-      );
-    }
+    openModal(
+      <DeleteModal
+        isCurrentUser={isCurrentUser}
+        onClose={closeModal}
+        onDeleteForMe={() => handleDeleteMessage(message.id)}
+        onDeleteForEveryone={(flag) => handleDeleteMessage(message.id, flag)}
+      />,
+    );
   };
 
   return (
     <div
       key={message.id}
-      className={`relative flex group ${isCurrentUser ? "justify-end" : "justify-start"}`}
+      className={`relative flex  ${isCurrentUser ? "justify-end" : "justify-start"}`}
     >
+      {!isCurrentUser && (
+        <div className="size-8 overflow-hidden flex  justify-center items-center rounded-full mr-1 bg-gray-700 ">
+          {message?.sender?.avatar ? (
+            <Image
+              src={message.sender.avatar}
+              alt={message?.sender?.name ?? "Avatar"}
+              width={32}
+              height={32}
+              className="object-cover"
+            />
+          ) : (
+            <span>{message?.sender?.name?.at(0)?.toUpperCase() ?? "U"}</span>
+          )}
+        </div>
+      )}
       <div
-        className={`relative p-2  rounded-lg  max-w-md ${isCurrentUser ? "bg-green-800 mr-2 rounded-tr-none" : "bg-gray-700 ml-2 rounded-tl-none"} text-white`}
+        className={`relative p-2  group rounded-lg  max-w-md ${isCurrentUser ? "bg-green-800 mr-2 rounded-tr-none" : "bg-gray-700 ml-2 rounded-tl-none"} text-white`}
       >
         <span
           aria-hidden="true"
@@ -135,8 +72,7 @@ export const Message = ({ message, isCurrentUser }: MessageProps) => {
         </span>
         <button
           onClick={handleDeleteClick}
-          className={`absolute top-1  text-white cursor-pointer flex items-center justify-center 
-            text-[16px] ${isCurrentUser ? "right-2" : "right-3"} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
+          className={`absolute top-1  text-white cursor-pointer flex items-center justify-center text-[16px] ${isCurrentUser ? "right-2" : "right-3"} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
           aria-label="Удалить сообщение"
         >
           X

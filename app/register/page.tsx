@@ -2,14 +2,14 @@
 
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
-import { registerAction } from "../lib/clientActions";
+import { registerAction } from "../lib/serverActions";
 
 // Схема валидации для формы регистрации
 const registerSchema = z.object({
   phone: z.string().min(1, "Требуется номер телефона"),
   password: z.string().min(6, "Пароль должен содержать не менее 6 символов"),
   name: z.string().optional(),
-  email: z.string().email("Неверный формат email").optional().or(z.literal("")),
+  email: z.string().regex(z.regexes.email, "Неверный формат email").optional().or(z.literal("")),
 });
 
 // Определение полей для формы
@@ -17,26 +17,31 @@ const formFields: Array<{
   name: "phone" | "password" | "name" | "email";
   label: string;
   type: "tel" | "password" | "text" | "email";
+  placeholder?: string;
 }> = [
   {
     name: "phone",
     label: "Номер телефона",
     type: "tel" as const,
+    placeholder: "Введите номер телефона",
   },
   {
     name: "password",
     label: "Пароль",
     type: "password" as const,
+    placeholder: "Введите пароль",
   },
   {
     name: "name",
-    label: "Имя (опционально)",
+    label: "Имя",
     type: "text" as const,
+    placeholder: "Введите ваше имя",
   },
   {
     name: "email",
-    label: "Email (опционально)",
+    label: "Email",
     type: "email" as const,
+    placeholder: "Введите ваш email (необязательно)",
   },
 ];
 

@@ -1,28 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-
-async function attemptRefresh(request: NextRequest): Promise<string | null> {
-  const refreshToken = request.cookies.get("refreshToken")?.value;
-  if (!refreshToken) return null;
-
-  try {
-    const refreshUrl = new URL("/api/auth/refresh", request.url);
-    const response = await fetch(refreshUrl, {
-      method: "POST",
-      headers: {
-        Cookie: `refreshToken=${refreshToken}`,
-      },
-    });
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data.accessToken || null;
-  } catch (error) {
-    console.error("[Middleware] Refresh request failed:", error);
-    return null;
-  }
-}
+import { getUserIdFromToken } from "./app/lib/JWTVeriify";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,8 +9,31 @@ export async function middleware(request: NextRequest) {
   let accessToken: string | null | undefined =
     request.cookies.get("accessToken")?.value;
 
+  const idUser = await getUserIdFromToken(accessToken);
+  if (!idUser) {
+    accessToken = null;
+  }
   if (!accessToken) {
-    accessToken = await attemptRefresh(request);
+    const refreshToken = request.cookies.get("refreshToken")?.value;
+
+    if (refreshToken) {
+      try {
+        const refreshUrl = new URL("/api/auth/refresh", request.url);
+        const response = await fetch(refreshUrl, {
+          method: "POST",
+          headers: {
+            Cookie: `refreshToken=${refreshToken}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          accessToken = data?.accessToken || null;
+        }
+      } catch (e) {
+        console.log(e);
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+    }
   }
 
   if (accessToken) {
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
 
     const response = NextResponse.next();
 
-    if (!request.cookies.has("accessToken")) {
+    if (!request.cookies.has("accessToken") || !idUser) {
       const ACCESS_TOKEN_LIFETIME_SEC =
         Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900;
       response.cookies.set("accessToken", accessToken, {

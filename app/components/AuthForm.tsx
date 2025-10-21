@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { RedirectType, redirect } from "next/navigation";
 import { useState } from "react";
 import type { Path, Resolver, SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
@@ -56,11 +57,14 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
       if (result && !result.success) {
         setServerError(result.error || "Произошла неизвестная ошибка");
       }
-    } catch {
-      setServerError("Произошла непредвиденная ошибка.");
+    } catch (error) {
+      setServerError(
+        `"Произошла непредвиденная ошибка." ${error instanceof Error ? error.message : error}`,
+      );
     } finally {
       setIsSubmitting(false);
     }
+    redirect("/", RedirectType.replace);
   };
 
   return (
@@ -109,7 +113,7 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
               disabled={isSubmitting}
               className="w-full flex justify-center items-center px-4 py-2 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-800 disabled:cursor-not-allowed"
             >
-               {buttonText}
+              {buttonText}
             </button>
           </div>
         </form>

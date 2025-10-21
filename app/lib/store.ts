@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import type { Chat, Message, PaginationState } from "../types";
 
-// Состояние пагинации для каждого чата
-
 interface ChatState {
   activeChatId: string | null;
   messages: Record<string, Message[]>;
@@ -21,6 +19,7 @@ interface ChatState {
   setInitialMessages: (chatId: string, messages: Message[]) => void;
   addMessagesToStart: (chatId: string, messages: Message[]) => void;
   addMessageToEnd: (message: Message) => void;
+  removeMessage: (message: Message) => void;
   setChats: (chats: Chat[]) => void;
   setPaginationState: (chatId: string, state: Partial<PaginationState>) => void;
   setCallState: (callState: string) => void;
@@ -33,6 +32,37 @@ interface ChatState {
   setUserId: (id: string | null) => void;
   addLog: (log: { message: string; id: string }) => void;
 }
+
+// Вспомогательные функции для работы с сообщениями
+const messageUtils = {
+  shouldRemoveMessage: (message: Message, userId: string | null): boolean => {
+    const { deletedReceiver, deletedSender, sender } = message;
+
+    if (deletedReceiver && deletedSender) return true;
+    if (deletedReceiver && sender.id !== userId) return true;
+    if (deletedSender && sender.id === userId) return true;
+
+    return false;
+  },
+
+  updateChatLastMessage: (chat: Chat, messages: Message[], deletedMessageId:string): Chat => {
+    if (!chat.messages?.[0]) return chat;
+
+    const lastMessage = messages.at(-2);
+    console.log('lastMessage',lastMessage)
+    console.log('chat.messages[0].id',chat.messages[0].id)
+    console.log('messages[0]?.id',messages[0]?.id)
+    if (chat.messages[0].id === deletedMessageId && lastMessage) {
+
+      return {
+        ...chat,
+        messages: [lastMessage],
+      };
+    }
+
+    return chat;
+  },
+};
 
 export const useChatStore = create<ChatState>((set) => ({
   activeChatId: null,
@@ -65,38 +95,82 @@ export const useChatStore = create<ChatState>((set) => ({
       },
     })),
 
-  addMessageToEnd: (message) => {
+  addMessageToEnd: (message) =>
     set((state) => {
       const { chatId } = message;
       const chatMessages = state.messages[chatId] || [];
+
+      // Проверка на дубликат
       if (chatMessages.some((m) => m.id === message.id)) {
         return state;
       }
-      const chat = state.chats.find((chat) => chat.id === chatId);
-      if (!chat) return state;
-      chat.messages = [message, ...(chat.messages || [])];
+
+      // Обновление чата
+      const updatedChats = state.chats.map((chat) =>
+        chat.id === chatId
+          ? { ...chat, messages: [message, ...(chat.messages || [])] }
+          : chat,
+      );
 
       return {
+        chats: updatedChats,
         messages: {
           ...state.messages,
           [chatId]: [...chatMessages, message],
         },
       };
-    });
-  },
+    }),
+
+  removeMessage: (message) =>
+    set((state) => {
+      const { chatId } = message;
+      const chatMessages = state.messages[chatId];
+
+      if (!chatMessages?.length) return state;
+
+      // Проверяем, нужно ли удалять сообщение
+      if (!messageUtils.shouldRemoveMessage(message, state.userId)) {
+        return state;
+      }
+      
+      // Обновляем последнее сообщение в чате
+      const updatedChats = state.chats.map((chat) =>
+        chat.id === chatId
+      ? messageUtils.updateChatLastMessage(chat, chatMessages,message.id)
+      : chat,
+    );
+    
+    // Фильтруем сообщения
+    const filteredMessages = chatMessages.filter((m) => m.id !== message.id);
+
+      return {
+        chats: updatedChats,
+        messages: {
+          ...state.messages,
+          [chatId]: filteredMessages,
+        },
+      };
+    }),
 
   setChats: (chats) => set({ chats }),
 
   setPaginationState: (chatId, newPaginationState) =>
-    set((state) => ({
-      pagination: {
-        ...state.pagination,
-        [chatId]: {
-          ...(state.pagination[chatId] || { hasMore: true, isLoading: false }),
-          ...newPaginationState,
+    set((state) => {
+      const currentPagination = state.pagination[chatId] || {
+        hasMore: true,
+        isLoading: false,
+      };
+
+      return {
+        pagination: {
+          ...state.pagination,
+          [chatId]: {
+            ...currentPagination,
+            ...newPaginationState,
+          },
         },
-      },
-    })),
+      };
+    }),
 
   setCallState: (callState: string) => set({ callState }),
   setLocalStream: (stream) => set({ localStream: stream }),
@@ -104,8 +178,9 @@ export const useChatStore = create<ChatState>((set) => ({
   setIncomingCall: (call) => set({ incomingCall: call }),
   setPeerConnection: (pc) => set({ peerConnection: pc }),
   setUserId: (id) => set({ userId: id }),
+
   addLog: (log) =>
     set((state) => ({
-      logs: log ? (state.logs ? [log, ...state.logs] : [log]) : null,
+      logs: log ? [log, ...(state.logs || [])] : null,
     })),
 }));
