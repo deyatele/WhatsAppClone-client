@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
 import { registerAction } from "../lib/serverActions";
@@ -9,7 +10,11 @@ const registerSchema = z.object({
   phone: z.string().min(1, "Требуется номер телефона"),
   password: z.string().min(6, "Пароль должен содержать не менее 6 символов"),
   name: z.string().optional(),
-  email: z.string().regex(z.regexes.email, "Неверный формат email").optional().or(z.literal("")),
+  email: z
+    .string()
+    .regex(z.regexes.email, "Неверный формат email")
+    .optional()
+    .or(z.literal("")),
 });
 
 // Определение полей для формы
@@ -46,6 +51,9 @@ const formFields: Array<{
 ];
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+
   return (
     <AuthForm
       formFields={formFields}
@@ -55,6 +63,7 @@ export default function RegisterPage() {
       buttonText="Зарегистрироваться"
       linkText="Уже есть аккаунт?"
       linkHref="/login"
+      inviteToken={inviteToken}
     />
   );
 }

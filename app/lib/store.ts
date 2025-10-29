@@ -14,7 +14,7 @@ interface ChatState {
   userId: string | null;
   logs: { message: string; id: string }[] | null;
 
-  // Actions
+  // Действия
   setActiveChatId: (id: string | null) => void;
   setInitialMessages: (chatId: string, messages: Message[]) => void;
   addMessagesToStart: (chatId: string, messages: Message[]) => void;
@@ -53,7 +53,6 @@ const messageUtils = {
     console.log('chat.messages[0].id',chat.messages[0].id)
     console.log('messages[0]?.id',messages[0]?.id)
     if (chat.messages[0].id === deletedMessageId && lastMessage) {
-
       return {
         ...chat,
         messages: [lastMessage],
@@ -132,16 +131,16 @@ export const useChatStore = create<ChatState>((set) => ({
       if (!messageUtils.shouldRemoveMessage(message, state.userId)) {
         return state;
       }
-      
+
       // Обновляем последнее сообщение в чате
       const updatedChats = state.chats.map((chat) =>
         chat.id === chatId
-      ? messageUtils.updateChatLastMessage(chat, chatMessages,message.id)
-      : chat,
-    );
-    
-    // Фильтруем сообщения
-    const filteredMessages = chatMessages.filter((m) => m.id !== message.id);
+          ? messageUtils.updateChatLastMessage(chat, chatMessages, message.id)
+          : chat,
+      );
+
+      // Фильтруем сообщения
+      const filteredMessages = chatMessages.filter((m) => m.id !== message.id);
 
       return {
         chats: updatedChats,

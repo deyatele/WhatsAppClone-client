@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
 import { loginAction } from "../lib/serverActions";
@@ -32,15 +33,19 @@ const formFields: Array<{
 ];
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+
   return (
     <AuthForm
       formFields={formFields}
       validationSchema={loginSchema}
       onSubmitAction={loginAction}
-      formTitle="Вход в WhatsApp"
+      formTitle="Вход в Расскажи и ..."
       buttonText="Войти"
       linkText="Нет аккаунта?"
       linkHref="/register"
+      inviteToken={inviteToken}
     />
   );
 }

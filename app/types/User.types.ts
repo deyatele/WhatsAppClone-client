@@ -1,9 +1,9 @@
 import z from "zod";
-import { userBaseSchema, timestampSchema } from "./Common.types";
+import { timestampSchema, userBaseSchema } from "./Common.types";
 
 export const userSchema = z.object({
   ...userBaseSchema.shape,
-  phone: z.string(), 
+  phone: z.string(),
   isOnline: z.boolean(),
   lastSeen: timestampSchema.nullable(),
   createdAt: timestampSchema,

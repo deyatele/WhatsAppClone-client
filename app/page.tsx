@@ -1,34 +1,17 @@
-import { cookies } from "next/headers";
-import { ZodError } from "zod"; // Import ZodError
-
 import { ChatList } from "./components/ChatList";
 import { ChatWindow } from "./components/ChatWindow";
+import JoinChatModale from "./components/modal/joinChatModal";
 import StoreInitializer from "./components/StoreInitializer";
-import { chatApi } from "./lib/api";
-import type { Chat } from "./types";
+import { getChatsAndToken } from "./lib/getChats";
 
-async function getChats(): Promise<Chat[]> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("accessToken")?.value;
-
-  if (!accessToken) {
-    return [];
-  }
-
-  try {
-    const chats: Chat[] = await chatApi.getMyChats(accessToken);
-    return chats;
-  } catch (error) {
-    console.error("Failed to fetch chats:", error);
-    if (error instanceof ZodError) {
-      console.error("Zod validation issues:", error.issues);
-    }
-    return [];
-  }
-}
-
-export default async function Home() {
-  const chats = await getChats();
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string }>;
+}) {
+  const { chats, token } = await getChatsAndToken();
+  const searchParamsResolved = await searchParams;
+  const inviteToken = searchParamsResolved.invite;
 
   return (
     <main className="flex h-screen">
@@ -37,7 +20,11 @@ export default async function Home() {
         <ChatList />
       </div>
       <div className="w-2/3">
-        <ChatWindow />
+        {inviteToken && token ? (
+          <JoinChatModale inviteToken={inviteToken} accessToken={token} />
+        ) : (
+          <ChatWindow />
+        )}
       </div>
     </main>
   );

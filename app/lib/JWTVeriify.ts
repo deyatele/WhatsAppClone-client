@@ -7,7 +7,6 @@ if (!secret) {
 }
 const secretKey = new TextEncoder().encode(secret);
 
-
 export async function getUserIdFromToken(
   token: string | null | undefined,
 ): Promise<string | null> {

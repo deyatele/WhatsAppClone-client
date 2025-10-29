@@ -1,6 +1,6 @@
 import z from "zod";
+import { timestampSchema, userBaseSchema } from "./Common.types";
 import { messageSchema } from "./Messages.types";
-import { userBaseSchema, timestampSchema } from "./Common.types";
 
 const participantSchema = z.object({
   user: userBaseSchema,

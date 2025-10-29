@@ -71,7 +71,7 @@ export const useChat = () => {
           hasMore: nextCursor !== null,
         });
       } catch (error) {
-        console.error("Failed to load messages:", error);
+        console.error("Не удалось загрузить сообщения:", error);
       } finally {
         isLoadingRef.current = false;
         store.setPaginationState(activeChatId, { isLoading: false });

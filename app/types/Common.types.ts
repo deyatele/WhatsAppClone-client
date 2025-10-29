@@ -1,8 +1,10 @@
 import z from "zod";
 
-export const timestampSchema = z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
-  message: "Invalid date string",
-});
+export const timestampSchema = z
+  .string()
+  .refine((val) => !Number.isNaN(Date.parse(val)), {
+    message: "Invalid date string",
+  });
 
 export const userBaseSchema = z.object({
   id: z.string(),

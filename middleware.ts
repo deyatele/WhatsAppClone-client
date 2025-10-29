@@ -5,14 +5,34 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isJoinChatRoute = pathname.startsWith("/join");
 
   let accessToken: string | null | undefined =
     request.cookies.get("accessToken")?.value;
-
+  const inviteToken = request.nextUrl.searchParams.get("invite");
   const idUser = await getUserIdFromToken(accessToken);
   if (!idUser) {
     accessToken = null;
   }
+
+  // Обработка пригласительной ссылки
+  if (isJoinChatRoute && inviteToken) {
+    if (!accessToken) {
+      return NextResponse.redirect(
+        new URL(
+          `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+          request.url,
+        ),
+      );
+    }
+    return NextResponse.redirect(
+      new URL(
+        `/${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+        request.url,
+      ),
+    );
+  }
+
   if (!accessToken) {
     const refreshToken = request.cookies.get("refreshToken")?.value;
 
@@ -28,17 +48,44 @@ export async function middleware(request: NextRequest) {
         if (response.ok) {
           const data = await response.json();
           accessToken = data?.accessToken || null;
+          if (!accessToken)
+            return NextResponse.redirect(
+              new URL(
+                `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+                request.url,
+              ),
+            );
         }
       } catch (e) {
         console.log(e);
-        return NextResponse.redirect(new URL("/login", request.url));
+        return NextResponse.redirect(
+          new URL(
+            `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+            request.url,
+          ),
+        );
       }
+    } else {
+      if (!isAuthPage) {
+        return NextResponse.redirect(
+          new URL(
+            `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+            request.url,
+          ),
+        );
+      }
+      return NextResponse.next();
     }
   }
 
   if (accessToken) {
     if (isAuthPage) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(
+        new URL(
+          `/${typeof inviteToken === "string" && `?invite=${inviteToken}`}`,
+          request.url,
+        ),
+      );
     }
 
     const response = NextResponse.next();
@@ -55,14 +102,6 @@ export async function middleware(request: NextRequest) {
       });
     }
 
-    return response;
-  }
-
-  if (!isAuthPage) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-
-    response.cookies.delete("accessToken");
-    response.cookies.delete("refreshToken");
     return response;
   }
 

@@ -1,10 +1,12 @@
 import z from "zod";
-import { userBaseSchema, timestampSchema } from "./Common.types";
+import { timestampSchema, userBaseSchema } from "./Common.types";
 
 export const messageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
-  content: z.string(),
+  content: z.string(), // Вернули content
+  encryptedPayload: z.string().optional(), // Сделали опциональным
+  text: z.string().optional(), // Добавлено для расшифрованного содержимого
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   deletedSender: z.boolean(),

@@ -2,8 +2,8 @@
 
 import { useChatStore } from "../lib/store";
 import { CallOverlay } from "./CallOverlay";
-import Modal from "./modal/Modal";
 import { ModalProvider, useModal } from "./modal/ModalContext";
+import Modal from "./ui/Modal";
 
 function ModalWrapper({ children }: { children: React.ReactNode }) {
   const { isOpen, closeModal, modalContent } = useModal();

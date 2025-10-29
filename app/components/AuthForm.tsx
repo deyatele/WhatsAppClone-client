@@ -23,6 +23,7 @@ interface AuthFormProps<S extends ZodObject<ZodRawShape>> {
   buttonText: string;
   linkText: string;
   linkHref: string;
+  inviteToken?: string | null;
 }
 
 export function AuthForm<S extends ZodObject<ZodRawShape>>({
@@ -33,6 +34,7 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
   buttonText,
   linkText,
   linkHref,
+  inviteToken,
 }: AuthFormProps<S>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,17 +56,34 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
     setIsSubmitting(true);
     try {
       const result = await onSubmitAction(data);
-      if (result && !result.success) {
+      if (result?.success) {
+        if (inviteToken) {
+          redirect(`/?invite=${inviteToken}`, RedirectType.replace);
+        } else {
+          redirect("/", RedirectType.replace);
+        }
+      } else if (result && !result.success) {
         setServerError(result.error || "Произошла неизвестная ошибка");
+        setIsSubmitting(false);
       }
     } catch (error) {
+      // Проверьте, является ли ошибка внутренней ошибкой перенаправления.
+      if (
+        error &&
+        typeof error === "object" &&
+        "digest" in error &&
+        typeof error.digest === "string" &&
+        error.digest.startsWith("NEXT_REDIRECT")
+      ) {
+        // Это внутренняя ошибка перенаправления. Повторите ее, чтобы Next.js мог ее обработать.
+        throw error;
+      }
+      // В противном случае это настоящая неожиданная ошибка.
       setServerError(
         `"Произошла непредвиденная ошибка." ${error instanceof Error ? error.message : error}`,
       );
-    } finally {
       setIsSubmitting(false);
     }
-    redirect("/", RedirectType.replace);
   };
 
   return (
@@ -120,7 +139,7 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
         <p className="text-sm text-center text-gray-400">
           {linkText}{" "}
           <Link
-            href={linkHref}
+            href={linkHref + (inviteToken ? `?invite=${inviteToken}` : "")}
             className={`font-medium text-green-500 ${isSubmitting ? "pointer-events-none" : "hover:underline"}`}
           >
             {linkHref === "/login" ? "Войти" : "Зарегистрироваться"}

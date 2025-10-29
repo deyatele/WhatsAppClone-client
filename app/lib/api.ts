@@ -84,7 +84,7 @@ export const chatApi = {
   async getMyChats(token: string): Promise<Chat[]> {
     const data = await fetchApi("/chats/my", {
       headers: { Authorization: `Bearer ${token}` },
-    });   
+    });
     return chatsResponseSchema.parse(data);
   },
 

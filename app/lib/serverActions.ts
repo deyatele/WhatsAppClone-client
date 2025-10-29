@@ -6,12 +6,10 @@ import { redirect } from "next/navigation";
 import type { LoginDto, RegisterDto } from "../lib/api";
 import { authApi } from "../lib/api";
 
-
 const ACCESS_TOKEN_LIFETIME_SEC =
   Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900; // 15 минут
 const REFRESH_TOKEN_LIFETIME_SEC =
   Number(process.env.REFRESH_TOKEN_LIFETIME_SEC) || 604800; // 7 дней
-
 
 async function _setAuthCookies(accessToken: string, refreshToken: string) {
   const cookieStore = await cookies();
@@ -37,6 +35,7 @@ export async function loginAction(dto: LoginDto) {
   try {
     const data = await authApi.login(dto);
     await _setAuthCookies(data.accessToken, data.refreshToken);
+
     return {
       success: true,
     };

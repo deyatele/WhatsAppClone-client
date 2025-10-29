@@ -1,6 +1,4 @@
-
-'use client';
-
+"use client";
 
 interface MessageInputProps {
   newMessage: string;

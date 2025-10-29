@@ -44,13 +44,13 @@ class WebRTCManager {
     this.socket.on("call:answer", this._handleAnswer.bind(this));
     this.socket.on("call:candidate", this._handleIceCandidate.bind(this));
     this.socket.on("call:ended", this.closeConnection.bind(this));
-    this.socket.on("call:accepted", (payload) => {      
+    this.socket.on("call:accepted", (payload) => {
       if (payload?.id) this.currentCallId = payload.id;
       log(
         `Debug:Call accepted by ${payload.from}, callId=${this.currentCallId}`,
       );
     });
-    this.socket.on("call:started", (payload) => {     
+    this.socket.on("call:started", (payload) => {
       if (payload?.call?.id) this.currentCallId = payload.call.id;
       log(`Debug:Call started, callId=${this.currentCallId}`);
     });

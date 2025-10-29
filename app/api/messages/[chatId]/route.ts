@@ -45,7 +45,7 @@ export async function GET(
     }
 
     const data = await response.json();
-    
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Failed to fetch messages:", error);

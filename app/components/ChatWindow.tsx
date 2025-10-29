@@ -5,7 +5,7 @@ import { ChatHeader } from "./ChatHeader";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { useUser } from "./UserProvider";
-import { Welcome } from "./Welcome";
+import { Welcome } from "./ui/Welcome";
 
 export const ChatWindow = () => {
   const {
@@ -18,7 +18,7 @@ export const ChatWindow = () => {
     newMessage,
     setNewMessage,
     handleSendMessage,
-    handleDeleteMessage
+    handleDeleteMessage,
   } = useChat();
   const { userId } = useUser();
   if (!activeChatId) {
