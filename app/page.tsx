@@ -12,7 +12,6 @@ export default async function Home({
   const { chats, token } = await getChatsAndToken();
   const searchParamsResolved = await searchParams;
   const inviteToken = searchParamsResolved.invite;
-
   return (
     <main className="flex h-screen">
       <StoreInitializer chats={chats} />

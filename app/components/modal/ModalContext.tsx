@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useState,
+} from "react";
 
 interface ModalContextType {
   isOpen: boolean;
@@ -15,15 +21,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [modalContent, setModalContent] = useState<ReactNode | null>(null);
 
-  const openModal = (content: ReactNode) => {
+  const openModal = useCallback((content: ReactNode) => {
     setModalContent(content);
     setIsOpen(true);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsOpen(false);
     setModalContent(null);
-  };
+  }, []);
 
   return (
     <ModalContext.Provider

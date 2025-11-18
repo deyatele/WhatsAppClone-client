@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
+import { generateAndStoreKeyPair } from "../lib/crypto/keyManager";
 import { registerAction } from "../lib/serverActions";
 
 // Схема валидации для формы регистрации
@@ -54,11 +55,28 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
 
+  type RegisterFormData = z.infer<typeof registerSchema>;
+  type RegisterResult = { success: boolean; error?: string } | undefined;
+
+  const handleRegister = async (
+    data: RegisterFormData,
+  ): Promise<RegisterResult> => {
+    try {
+      const { privateKeyBackup, publicKeyJwk } = await generateAndStoreKeyPair(
+        data.password,
+      );
+      return await registerAction({ ...data, privateKeyBackup, publicKeyJwk });
+    } catch (e) {
+      console.error("Ошибка генерации ключей:", e);
+      return { success: false, error: "Ошибка генерации ключей" };
+    }
+  };
+
   return (
     <AuthForm
       formFields={formFields}
       validationSchema={registerSchema}
-      onSubmitAction={registerAction}
+      onSubmitAction={handleRegister}
       formTitle="Создать аккаунт"
       buttonText="Зарегистрироваться"
       linkText="Уже есть аккаунт?"

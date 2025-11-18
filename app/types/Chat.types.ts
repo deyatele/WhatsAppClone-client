@@ -1,6 +1,6 @@
 import z from "zod";
 import { timestampSchema, userBaseSchema } from "./Common.types";
-import { messageSchema } from "./Messages.types";
+import { messageSchema, messagesResponseSchema } from "./Messages.types";
 
 const participantSchema = z.object({
   user: userBaseSchema,
@@ -20,6 +20,17 @@ export interface PaginationState {
   isLoading: boolean;
 }
 
-export const chatsResponseSchema = z.array(chatSchema);
 export type Chat = z.infer<typeof chatSchema>;
 export type ChatParticipant = z.infer<typeof userBaseSchema>;
+
+const chatShemaResponse = z.object({
+  id: z.string(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  participants: z.array(participantSchema),
+  messages: messagesResponseSchema,
+});
+
+export const chatsResponseSchema = z.array(chatShemaResponse);
+
+export type ChatResponse = z.infer<typeof chatShemaResponse>;

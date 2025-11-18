@@ -8,10 +8,42 @@ export async function GET(
   const { chatId } = await params;
 
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get("accessToken")?.value;
+  let accessToken = cookieStore.get("accessToken")?.value;
+  const inviteToken = request.nextUrl.searchParams.get("invite");
 
   if (!accessToken) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    const refreshToken = request.cookies.get("refreshToken")?.value;
+
+    if (refreshToken) {
+      try {
+        const refreshUrl = new URL("/api/auth/refresh", request.url);
+        const response = await fetch(refreshUrl, {
+          method: "POST",
+          headers: {
+            Cookie: `refreshToken=${refreshToken}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          accessToken = data?.accessToken || null;
+          if (!accessToken)
+            return NextResponse.redirect(
+              new URL(
+                `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+                request.url,
+              ),
+            );
+        }
+      } catch (e) {
+        console.log(e);
+        return NextResponse.redirect(
+          new URL(
+            `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+            request.url,
+          ),
+        );
+      }
+    }
   }
 
   if (!chatId) {
@@ -46,7 +78,21 @@ export async function GET(
 
     const data = await response.json();
 
-    return NextResponse.json(data);
+    const responseData = NextResponse.json(data);
+
+    if (!request.cookies.has("accessToken") && accessToken) {
+      const ACCESS_TOKEN_LIFETIME_SEC =
+        Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900;
+      responseData.cookies.set("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: ACCESS_TOKEN_LIFETIME_SEC,
+        path: "/",
+      });
+    }
+
+    return responseData;
   } catch (error) {
     console.error("Failed to fetch messages:", error);
     return new NextResponse("Internal Server Error", { status: 500 });

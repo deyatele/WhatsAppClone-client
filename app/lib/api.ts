@@ -2,13 +2,14 @@ import { z } from "zod";
 import {
   type AuthResponse,
   authResponseSchema,
-  type Chat,
+  type ChatResponse,
   chatsResponseSchema,
-  type Message,
+  type MessageResponse,
   messagesResponseSchema,
   type User,
   userSchema,
 } from "../types";
+import type { JsonWebKeyPrivate } from "./crypto/types/keys.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -17,6 +18,8 @@ export type RegisterDto = {
   password: string;
   email?: string;
   name?: string;
+  publicKeyJwk?: JsonWebKey;
+  privateKeyBackup?: JsonWebKeyPrivate;
 };
 
 export type LoginDto = {
@@ -24,7 +27,10 @@ export type LoginDto = {
   password: string;
 };
 
-async function fetchApi(endpoint: string, options: RequestInit = {}) {
+export async function fetchApi<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
   const fetchOptions: RequestInit & { agent?: object } = {
     ...options,
     headers: {
@@ -33,20 +39,52 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
     },
   };
 
-  // Node-only dev agent
   if (process.versions?.node && process.env.NODE_ENV === "development") {
     const https = await import("node:https");
     fetchOptions.agent = new https.Agent({
       rejectUnauthorized: false,
     });
   }
+
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
+  let parsed: unknown = null;
+  try {
+    parsed = await response.json();
+  } catch {
+    parsed = null;
+  }
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || "Что-то пошло не так");
+    let msg = response.statusText || "Server error";
+
+    if (parsed && typeof parsed === "object") {
+      const p = parsed as Record<string, unknown>;
+
+      if ("message" in p && typeof p.message === "string") {
+        msg = p.message;
+      } else if (
+        "error" in p &&
+        typeof p.error === "object" &&
+        p.error !== null &&
+        "message" in p.error &&
+        typeof (p.error as Record<string, unknown>).message === "string"
+      ) {
+        msg = (p.error as Record<string, unknown>).message as string;
+      }
+    }
+
+    throw new Error(msg);
   }
-  return await response.json();
+
+  // Accept both API response shapes: { data: T } or direct T
+  if (parsed && typeof parsed === "object") {
+    const p = parsed as Record<string, unknown>;
+    if (Object.hasOwn(p, "data")) {
+      return p.data as T;
+    }
+  }
+
+  return parsed as T;
 }
 
 export const authApi = {
@@ -73,6 +111,13 @@ export const authApi = {
     });
     return z.object({ accessToken: z.string() }).parse(data);
   },
+
+  async validatePassword(password: string): Promise<void> {
+    await fetchApi("/auth/validate-password", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+  },
 };
 
 const paginatedMessagesSchema = z.object({
@@ -81,7 +126,7 @@ const paginatedMessagesSchema = z.object({
 });
 
 export const chatApi = {
-  async getMyChats(token: string): Promise<Chat[]> {
+  async getMyChats(token: string): Promise<ChatResponse[]> {
     const data = await fetchApi("/chats/my", {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -92,7 +137,7 @@ export const chatApi = {
     chatId: string,
     cursor?: string,
     limit = 15,
-  ): Promise<{ messages: Message[]; nextCursor: string | null }> {
+  ): Promise<{ messages: MessageResponse[]; nextCursor: string | null }> {
     const url = new URL(`/api/messages/${chatId}`, window.location.origin);
     url.searchParams.append("limit", String(limit));
     if (cursor) {
@@ -102,10 +147,10 @@ export const chatApi = {
     const response = await fetch(url.toString());
     if (!response.ok) {
       const errorData = await response.json();
+      console.log(errorData);
       throw new Error(errorData.message || "Failed to fetch messages");
     }
     const data = await response.json();
     return paginatedMessagesSchema.parse(data);
   },
-  
 };

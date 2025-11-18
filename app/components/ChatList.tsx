@@ -2,13 +2,19 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
+// React imports
+import { useCallback, useEffect, useState } from "react";
+
+// Internal modules
 import { logoutAction } from "../lib/serverActions";
 import { useChatStore } from "../lib/store";
 import { formaterDate } from "../lib/utils";
+// Types
 import type { Chat } from "../types";
+// Components
 import { LogPanel } from "./LogPanel";
+import PasswordModale from "./modal/passwordModal";
 import { useUser } from "./UserProvider";
 import { Dropdown } from "./ui/Dropdown";
 import {
@@ -20,17 +26,68 @@ import {
   SearchIcon,
   StarIcon,
 } from "./ui/icons";
+import Modal from "./ui/Modal";
 import { NewChat } from "./ui/NewChat";
 
 export const ChatList = () => {
-  const { chats, setActiveChatId, activeChatId } = useChatStore();
+  const { chats, setActiveChatId, activeChatId, password, setPassword } =
+    useChatStore();
   const { userId } = useUser();
   const router = useRouter();
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handlePasswordSubmit = useCallback(
+    async (newPassword: string) => {
+      if (!newPassword.trim()) {
+        setError("Поле не может быть пустым");
+        return;
+      }
+      setError(null);
+      setLoading(true);
+      try {
+        const response = await fetch("/api/auth/validate-password", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ password: newPassword }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Неверный пароль");
+        }
+
+        setPassword(newPassword);
+        setIsPasswordModalOpen(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Произошла ошибка");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setPassword],
+  );
+
+  useEffect(() => {
+    if (isMounted && !password) {
+      setIsPasswordModalOpen(true);
+    }
+  }, [isMounted, password]);
 
   const disabled = true; // Заглушка для неактивных функций
 
   const handleLogout = async () => {
+    setLoading(true);
     await logoutAction();
     router.push("/login");
   };
@@ -104,7 +161,8 @@ export const ChatList = () => {
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
+                    className={`flex items-center w-full px-4 py-2 text-sm text-gray-200 hover:bg-gray-600 ${loading ? "cursor-none" : "cursor-pointer"}`}
+                    disabled={loading}
                   >
                     <LogoutIcon className="w-5 h-5 mr-3" />
                     <span>Выйти</span>
@@ -167,7 +225,7 @@ export const ChatList = () => {
                       </div>
                       <div className="flex justify-between items-center ">
                         <p className="text-sm text-gray-400 max-w-xs truncate">
-                          {lastMessage?.content || "Пока нет сообщений"}
+                          {lastMessage?.message || "Пока нет сообщений"}
                         </p>
                       </div>
                     </div>
@@ -185,6 +243,13 @@ export const ChatList = () => {
           <LogPanel />
         </div>
       </div>
+      <Modal isOpen={isPasswordModalOpen} onClose={() => {}}>
+        <PasswordModale
+          handleAction={handlePasswordSubmit}
+          error={error}
+          loading={loading}
+        />
+      </Modal>
       <div
         className={`absolute inset-0 transition-transform duration-300 ${
           isNewChatOpen ? "translate-x-0" : "-translate-x-full"

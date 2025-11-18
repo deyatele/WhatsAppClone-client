@@ -13,6 +13,8 @@ interface ChatState {
   peerConnection: RTCPeerConnection | null;
   userId: string | null;
   logs: { message: string; id: string }[] | null;
+  pubKeyUser: JsonWebKey | null;
+  password: string | null;
 
   // Действия
   setActiveChatId: (id: string | null) => void;
@@ -31,8 +33,9 @@ interface ChatState {
   setPeerConnection: (pc: RTCPeerConnection | null) => void;
   setUserId: (id: string | null) => void;
   addLog: (log: { message: string; id: string }) => void;
+  setPubKeyUser: (key: JsonWebKey | null) => void;
+  setPassword: (password: string) => void;
 }
-
 // Вспомогательные функции для работы с сообщениями
 const messageUtils = {
   shouldRemoveMessage: (message: Message, userId: string | null): boolean => {
@@ -45,13 +48,17 @@ const messageUtils = {
     return false;
   },
 
-  updateChatLastMessage: (chat: Chat, messages: Message[], deletedMessageId:string): Chat => {
+  updateChatLastMessage: (
+    chat: Chat,
+    messages: Message[],
+    deletedMessageId: string,
+  ): Chat => {
     if (!chat.messages?.[0]) return chat;
 
     const lastMessage = messages.at(-2);
-    console.log('lastMessage',lastMessage)
-    console.log('chat.messages[0].id',chat.messages[0].id)
-    console.log('messages[0]?.id',messages[0]?.id)
+    console.log("lastMessage", lastMessage);
+    console.log("chat.messages[0].id", chat.messages[0].id);
+    console.log("messages[0]?.id", messages[0]?.id);
     if (chat.messages[0].id === deletedMessageId && lastMessage) {
       return {
         ...chat,
@@ -75,6 +82,12 @@ export const useChatStore = create<ChatState>((set) => ({
   peerConnection: null,
   userId: null,
   logs: null,
+  pubKeyUser: null,
+  password: null,
+
+  setPassword: (password) => set({ password }),
+
+  setPubKeyUser: (key: JsonWebKey | null) => set({ pubKeyUser: key }),
 
   setActiveChatId: (id) => set({ activeChatId: id }),
 
@@ -98,7 +111,6 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => {
       const { chatId } = message;
       const chatMessages = state.messages[chatId] || [];
-
       // Проверка на дубликат
       if (chatMessages.some((m) => m.id === message.id)) {
         return state;

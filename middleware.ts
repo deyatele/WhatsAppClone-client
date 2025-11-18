@@ -82,7 +82,7 @@ export async function middleware(request: NextRequest) {
     if (isAuthPage) {
       return NextResponse.redirect(
         new URL(
-          `/${typeof inviteToken === "string" && `?invite=${inviteToken}`}`,
+          `/${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
           request.url,
         ),
       );
@@ -110,7 +110,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Применяем ко всем путям, кроме служебных и файлов API
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    // Применяем ко всем путям, кроме служебных и файлов API и любых _next путей
+    "/((?!api|_next|favicon.ico).*)",
   ],
 };

@@ -20,7 +20,7 @@ interface UserProviderProps {
 }
 
 export const UserProvider = ({ children, userId }: UserProviderProps) => {
-  const setUserId = useChatStore((state) => state.setUserId);
+  const { setUserId } = useChatStore((state) => state);
 
   useEffect(() => {
     setUserId(userId);

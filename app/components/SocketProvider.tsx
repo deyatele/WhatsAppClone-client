@@ -2,10 +2,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Socket } from "socket.io-client";
 import { io } from "socket.io-client";
+import { useChat } from "../lib/hooks/useChat";
 import { log } from "../lib/log";
 import { useChatStore } from "../lib/store";
 import { webRTCManager } from "../lib/WebRTCManager";
-import type { Message } from "../types";
+import type { Message, MessageResponse } from "../types";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -20,7 +21,9 @@ interface SocketProviderProps {
 }
 export const SocketProvider = ({ children, token }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const { setUserId, addMessageToEnd, removeMessage } = useChatStore();
+  const { setUserId, addMessageToEnd, removeMessage, userId, password } =
+    useChatStore();
+  const { decryptedMessage } = useChat();
   useEffect(() => {
     if (!token) return;
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3001";
@@ -46,8 +49,16 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       log(`📴 call:ended received ${payload}`);
       webRTCManager.closeConnection();
     });
-    newSocket.on("message:new", (message: Message) => {
-      addMessageToEnd(message);
+    newSocket.on("message:new", async (message: MessageResponse) => {
+      console.log(userId, password);
+      if (!userId || !password) return;
+      try {
+        const decodeMessage = await decryptedMessage(message, userId, password);
+        if (!decodeMessage) return console.log(decodeMessage);
+        addMessageToEnd(decodeMessage);
+      } catch (error) {
+        console.log(error);
+      }
     });
     newSocket.on("message:deleted", (message: Message) => {
       removeMessage(message);
@@ -56,7 +67,15 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [token, setUserId, addMessageToEnd, removeMessage]);
+  }, [
+    token,
+    setUserId,
+    addMessageToEnd,
+    removeMessage,
+    userId,
+    password,
+    decryptedMessage,
+  ]);
   return (
     <SocketContext.Provider value={{ socket }}>
       {children}

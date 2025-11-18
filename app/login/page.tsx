@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
-import { loginAction } from "../lib/serverActions";
+import { loginWithKeyVerification } from "../lib/crypto/auth";
 
 // Схема валидации для формы входа
 const loginSchema = z.object({
@@ -40,7 +40,7 @@ export default function LoginPage() {
     <AuthForm
       formFields={formFields}
       validationSchema={loginSchema}
-      onSubmitAction={loginAction}
+      onSubmitAction={loginWithKeyVerification}
       formTitle="Вход в Расскажи и ..."
       buttonText="Войти"
       linkText="Нет аккаунта?"

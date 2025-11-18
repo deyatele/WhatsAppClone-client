@@ -2,11 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { RedirectType, redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Path, Resolver, SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import type { ZodObject, ZodRawShape, z } from "zod";
+import { useChatStore } from "../lib/store";
 
 interface AuthFormProps<S extends ZodObject<ZodRawShape>> {
   formFields: Array<{
@@ -50,24 +51,27 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
   });
 
   const [serverError, setServerError] = useState<string | null>(null);
-
+  const { setPassword } = useChatStore();
+  const router = useRouter();
   const onSubmit: SubmitHandler<OutputValues> = async (data) => {
     setServerError(null);
     setIsSubmitting(true);
     try {
       const result = await onSubmitAction(data);
       if (result?.success) {
+        setPassword(data.password as string);
         if (inviteToken) {
-          redirect(`/?invite=${inviteToken}`, RedirectType.replace);
+          router.replace(`/?invite=${inviteToken}`);
         } else {
-          redirect("/", RedirectType.replace);
+          console.log(result);
+          router.replace("/");
         }
       } else if (result && !result.success) {
         setServerError(result.error || "Произошла неизвестная ошибка");
         setIsSubmitting(false);
       }
     } catch (error) {
-      // Проверьте, является ли ошибка внутренней ошибкой перенаправления.
+      console.log(error);
       if (
         error &&
         typeof error === "object" &&
@@ -75,10 +79,8 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
         typeof error.digest === "string" &&
         error.digest.startsWith("NEXT_REDIRECT")
       ) {
-        // Это внутренняя ошибка перенаправления. Повторите ее, чтобы Next.js мог ее обработать.
         throw error;
       }
-      // В противном случае это настоящая неожиданная ошибка.
       setServerError(
         `"Произошла непредвиденная ошибка." ${error instanceof Error ? error.message : error}`,
       );
@@ -130,7 +132,7 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center items-center px-4 py-2 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-800 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center px-4 py-2 font-bold text-white bg-green-600 rounded-md cursor-pointer hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-800 disabled:cursor-not-allowed"
             >
               {buttonText}
             </button>

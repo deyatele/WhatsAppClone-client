@@ -9,8 +9,13 @@ import {
 } from "react";
 import { useSocket } from "../../components/SocketProvider";
 import { useUser } from "../../components/UserProvider";
-import type { Chat, Message } from "../../types";
+import type { Chat, Message, MessageResponse } from "../../types";
 import { chatApi } from "../api";
+import { getPrivateKey, getPublicJwk } from "../crypto/keyManager";
+import {
+  decryptMessageForOne,
+  encryptMessageForTwo,
+} from "../crypto/messageEncryptor";
 import { useChatStore } from "../store";
 
 const useIsomorphicLayoutEffect =
@@ -21,7 +26,15 @@ export const useChat = () => {
   const { socket } = useSocket();
   const store = useChatStore();
 
-  const { activeChatId, chats, messages, pagination } = store;
+  const {
+    activeChatId,
+    chats,
+    messages,
+    pagination,
+    pubKeyUser,
+    setPubKeyUser,
+    password,
+  } = store;
   const activeChatMessages = messages[activeChatId || ""] || [];
   const messageCount = activeChatMessages.length;
 
@@ -35,9 +48,51 @@ export const useChat = () => {
     oldScrollHeight: 0,
     shouldAdjustScroll: false,
   });
+  const addMessagesToStart = useChatStore((s) => s.addMessagesToStart);
+  const setInitialMessages = useChatStore((s) => s.setInitialMessages);
+  const setPaginationState = useChatStore((s) => s.setPaginationState);
+
+  const decryptedMessages = useCallback(
+    async (
+      newMessages: MessageResponse[],
+      userId: string,
+      password: string,
+    ) => {
+      const privateKey = await getPrivateKey(password, userId);
+      const messages: Message[] = [];
+      for (const message of newMessages) {
+        const { encryptedMessage, ...messageOther } = message;
+        try {
+          const {
+            encryptedMessage: encMess,
+            encryptedKeyForReceiver,
+            encryptedKeyForSender,
+          } = encryptedMessage;
+
+          const text = await decryptMessageForOne({
+            encryptedMessage: encMess,
+            privateKey,
+            encryptedKeyB64:
+              message.senderId === userId
+                ? encryptedKeyForSender
+                : encryptedKeyForReceiver,
+          });
+          messages.push({ ...messageOther, message: text });
+        } catch {
+          messages.push({
+            ...messageOther,
+            message: "Не получилось расшифровать",
+          });
+        }
+      }
+      return messages;
+    },
+    [],
+  );
 
   const loadMessages = useCallback(
     async (isInitial = false) => {
+      if (!password || !userId) return;
       const currentPagination = useChatStore.getState().pagination[
         activeChatId || ""
       ] || {
@@ -48,7 +103,7 @@ export const useChat = () => {
         return;
       }
       isLoadingRef.current = true;
-      store.setPaginationState(activeChatId, { isLoading: true });
+      setPaginationState(activeChatId, { isLoading: true });
 
       try {
         const cursor = isInitial ? undefined : currentPagination.cursor;
@@ -57,16 +112,21 @@ export const useChat = () => {
           cursor,
           15,
         );
+        const messages: Message[] = await decryptedMessages(
+          newMessages,
+          userId,
+          password,
+        );
 
-        const chronologicalMessages = newMessages.reverse();
+        const chronologicalMessages = messages.reverse();
 
         if (isInitial) {
-          store.setInitialMessages(activeChatId, chronologicalMessages);
+          setInitialMessages(activeChatId, chronologicalMessages);
         } else {
-          store.addMessagesToStart(activeChatId, chronologicalMessages);
+          addMessagesToStart(activeChatId, chronologicalMessages);
         }
 
-        store.setPaginationState(activeChatId, {
+        setPaginationState(activeChatId, {
           cursor: nextCursor ?? undefined,
           hasMore: nextCursor !== null,
         });
@@ -74,11 +134,46 @@ export const useChat = () => {
         console.error("Не удалось загрузить сообщения:", error);
       } finally {
         isLoadingRef.current = false;
-        store.setPaginationState(activeChatId, { isLoading: false });
+        setPaginationState(activeChatId, { isLoading: false });
       }
     },
-    [activeChatId, store],
+    [
+      activeChatId,
+      password,
+      userId,
+      setPaginationState,
+      setInitialMessages,
+      addMessagesToStart,
+      decryptedMessages,
+    ],
   );
+
+  const decryptedMessage = useCallback(async (
+    newMessage: MessageResponse,
+    userId: string,
+    password: string,
+  ) => {
+    const privateKey = await getPrivateKey(password, userId);
+    const { encryptedMessage, ...messageOther } = newMessage;
+    try {
+      const {
+        encryptedMessage: encMess,
+        encryptedKeyForReceiver,
+        encryptedKeyForSender,
+      } = encryptedMessage;
+
+      const message = await decryptMessageForOne({
+        encryptedMessage: encMess,
+        privateKey,
+        encryptedKeyB64:
+          newMessage.senderId === userId
+            ? encryptedKeyForSender
+            : encryptedKeyForReceiver,
+      });
+
+      return { ...messageOther, message };
+    } catch {}
+  },[]);
 
   useEffect(() => {
     if (!isInitialLoadComplete) return;
@@ -155,11 +250,24 @@ export const useChat = () => {
     }
   }, [socket, activeChatId]);
 
+  useEffect(() => {
+    if (!userId || !activeChatId) return;
+    getPublicJwk(userId).then((pubKey) => {
+      setPubKeyUser(pubKey);
+    });
+  }, [userId, setPubKeyUser, activeChatId]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !socket || !activeChatId) return;
-    socket.emit("message:send", { chatId: activeChatId, text: newMessage });
-    setNewMessage("");
+    const pubKeyOther = chats
+      .find((chat) => chat.id === activeChatId)
+      ?.participants.find((p) => p.user.id !== userId)?.user.publicKeyJwk;
+    if (!pubKeyOther || !pubKeyUser) return;
+    encryptMessageForTwo(newMessage, pubKeyUser, pubKeyOther).then((enMes) => {
+      socket.emit("message:send", { chatId: activeChatId, text: enMes });
+      setNewMessage("");
+    });
   };
 
   const handleDeleteMessage = (
@@ -189,5 +297,7 @@ export const useChat = () => {
     setNewMessage,
     handleSendMessage,
     handleDeleteMessage,
+    decryptedMessages,
+    decryptedMessage,
   };
 };
