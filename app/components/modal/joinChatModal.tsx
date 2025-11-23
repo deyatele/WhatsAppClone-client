@@ -1,27 +1,33 @@
 "use client";
 import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { chatApi } from "../../lib/api";
+import { useChat } from "../../lib/hooks/useChat";
 
 interface JoinChatModaleProps {
   inviteToken: string;
-  accessToken: string;
 }
 
-export default function JoinChatModale({
-  inviteToken,
-  accessToken,
-}: JoinChatModaleProps) {
-  console.log(inviteToken, accessToken);
+export default function JoinChatModale({ inviteToken }: JoinChatModaleProps) {
+  const [userInviteId, setUserInviteId] = useState<string | null>(null);
+  const { getUserInviteChat } = useChat();
+  const { createChat } = chatApi;
+  useEffect(() => {
+    if (!inviteToken) return;
+    getUserInviteChat(inviteToken).then((id) => id && setUserInviteId(id));
+  }, [inviteToken, getUserInviteChat]);
+
   const handleJoinChat = async () => {
-    /* try {
-      const { chatId } = await chatInviteApi.joinChatInvite(
-        { inviteToken: inviteToken as string },
-        accessToken as string,
-      );
-      redirect(`/chat/${chatId}`);
+    try {
+      if (!userInviteId)
+        throw new Error("Нет пользователя к которому присоединяемся");
+      const { chatId } = await createChat(userInviteId);
+      if (!chatId) throw new Error("Не получилось присоединится к чату");
+      redirect(`/`);
     } catch (error) {
       console.error("Не удалось присоединиться к чату:", error);
       redirect("/");
-    } */
+    }
   };
 
   const handleDeclineChat = () => {

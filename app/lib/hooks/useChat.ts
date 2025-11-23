@@ -58,7 +58,14 @@ export const useChat = () => {
       userId: string,
       password: string,
     ) => {
-      const privateKey = await getPrivateKey(password, userId);
+      let privateKey:CryptoKey
+      try{
+        privateKey = await getPrivateKey(password, userId);
+
+      } catch (e){
+        console.error(e)
+        return []
+      }
       const messages: Message[] = [];
       for (const message of newMessages) {
         const { encryptedMessage, ...messageOther } = message;
@@ -148,32 +155,36 @@ export const useChat = () => {
     ],
   );
 
-  const decryptedMessage = useCallback(async (
-    newMessage: MessageResponse,
-    userId: string,
-    password: string,
-  ) => {
-    const privateKey = await getPrivateKey(password, userId);
-    const { encryptedMessage, ...messageOther } = newMessage;
-    try {
-      const {
-        encryptedMessage: encMess,
-        encryptedKeyForReceiver,
-        encryptedKeyForSender,
-      } = encryptedMessage;
+  const decryptedMessage = useCallback(
+    async (
+      newMessage: MessageResponse,
+      /*  userId: string,
+    password: string, */
+    ) => {
+      if (!userId || !password) throw new Error("Нет пользователя или пароля");
+      const privateKey = await getPrivateKey(password, userId);
+      const { encryptedMessage, ...messageOther } = newMessage;
+      try {
+        const {
+          encryptedMessage: encMess,
+          encryptedKeyForReceiver,
+          encryptedKeyForSender,
+        } = encryptedMessage;
 
-      const message = await decryptMessageForOne({
-        encryptedMessage: encMess,
-        privateKey,
-        encryptedKeyB64:
-          newMessage.senderId === userId
-            ? encryptedKeyForSender
-            : encryptedKeyForReceiver,
-      });
+        const message = await decryptMessageForOne({
+          encryptedMessage: encMess,
+          privateKey,
+          encryptedKeyB64:
+            newMessage.senderId === userId
+              ? encryptedKeyForSender
+              : encryptedKeyForReceiver,
+        });
 
-      return { ...messageOther, message };
-    } catch {}
-  },[]);
+        return { ...messageOther, message };
+      } catch {}
+    },
+    [password, userId],
+  );
 
   useEffect(() => {
     if (!isInitialLoadComplete) return;
@@ -264,10 +275,12 @@ export const useChat = () => {
       .find((chat) => chat.id === activeChatId)
       ?.participants.find((p) => p.user.id !== userId)?.user.publicKeyJwk;
     if (!pubKeyOther || !pubKeyUser) return;
-    encryptMessageForTwo(newMessage, pubKeyUser, pubKeyOther).then((enMes) => {
-      socket.emit("message:send", { chatId: activeChatId, text: enMes });
-      setNewMessage("");
-    });
+    encryptMessageForTwo(newMessage, pubKeyUser, pubKeyOther)
+      .then((enMes) => {
+        socket.emit("message:send", { chatId: activeChatId, text: enMes });
+        setNewMessage("");
+      })
+      .catch((e) => console.log(e));
   };
 
   const handleDeleteMessage = (
@@ -285,6 +298,28 @@ export const useChat = () => {
     (p) => p.user.id !== userId,
   )?.user;
 
+  const generateChatInviteLink = useCallback(async () => {
+    try {
+      const { id } = await chatApi.getInviteToken();
+      const inviteLink = `${window.location.origin}?invite=${id}`;
+      return inviteLink;
+    } catch (error) {
+      console.error(
+        "Не удалось сгенерировать ссылку-приглашение для чата:",
+        error,
+      );
+      return null;
+    }
+  }, []);
+  const getUserInviteChat = useCallback(async (inviteToken: string) => {
+    try {
+      const { userId } = await chatApi.getUserInviteChat(inviteToken);
+      return userId;
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
   return {
     activeChatId,
     activeChat,
@@ -299,5 +334,7 @@ export const useChat = () => {
     handleDeleteMessage,
     decryptedMessages,
     decryptedMessage,
+    generateChatInviteLink,
+    getUserInviteChat,
   };
 };

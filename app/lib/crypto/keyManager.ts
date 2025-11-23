@@ -8,7 +8,7 @@
    
 */
 
-import type { JsonWebKeys, KeyRecord } from "./types/keys.types";
+import type { KeyRecord } from "./types/keys.types";
 
 const DB_NAME = "crypto-store";
 const STORE_NAME = "keys";
@@ -58,7 +58,7 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function putRecord(record: KeyRecord) {
+export async function putRecord(record: KeyRecord) {
   const db = await openDb();
   return new Promise<void>((res, rej) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -139,9 +139,7 @@ async function deriveKeyFromPassword(
 /* Генерация RSA пары и её шифрование/сохранение */
 export async function generateAndStoreKeyPair(
   password: string,
-  id?: string,
-): Promise<JsonWebKeys> {
-  const keyId = id ?? crypto.randomUUID();
+): Promise<Omit<KeyRecord, "id">> {
   try {
     const keyPair = await crypto.subtle.generateKey(RSA_GENERATE_PARAMS, true, [
       "encrypt",
@@ -168,10 +166,9 @@ export async function generateAndStoreKeyPair(
       privatePkcs8,
     );
 
-    const record: KeyRecord = {
-      id: keyId,
+    const record: Omit<KeyRecord, "id"> = {
       publicKeyJwk,
-      privateKeyBackup: {
+      privateKeyJwk: {
         encryptedPrivateKeyB64: arrayBufferToBase64(encrypted),
         ivB64: arrayBufferToBase64(iv.buffer),
         saltB64: arrayBufferToBase64(salt.buffer),
@@ -179,7 +176,6 @@ export async function generateAndStoreKeyPair(
       },
     };
 
-    await putRecord(record);
     return record;
   } catch (e) {
     console.log(e);
@@ -222,22 +218,19 @@ export async function getPrivateKey(
   password: string,
   id: string,
 ): Promise<CryptoKey> {
-  console.log('getPrivateKey', id)
   const rec = await getRecord(id);
   if (!rec) throw new Error("Ключ не найден");
 
   try {
-    const salt = new Uint8Array(
-      base64ToArrayBuffer(rec.privateKeyBackup.saltB64),
-    );
-    const iv = new Uint8Array(base64ToArrayBuffer(rec.privateKeyBackup.ivB64));
+    const salt = new Uint8Array(base64ToArrayBuffer(rec.privateKeyJwk.saltB64));
+    const iv = new Uint8Array(base64ToArrayBuffer(rec.privateKeyJwk.ivB64));
     const encrypted = base64ToArrayBuffer(
-      rec.privateKeyBackup.encryptedPrivateKeyB64,
+      rec.privateKeyJwk.encryptedPrivateKeyB64,
     );
     const akey = await deriveKeyFromPassword(
       password,
       salt,
-      Number(rec.privateKeyBackup.iterations),
+      Number(rec.privateKeyJwk.iterations),
     );
     const decrypted = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv },
@@ -254,32 +247,8 @@ export async function getPrivateKey(
     );
     return privateKey;
   } catch (e) {
-    // Возможна некорректный пароль или повреждение данных
     throw new Error(`"Не удалось расшифровать приватный ключ" ${e}`);
   }
-}
-
-export async function getPrivateKeyWithDerivedKey(
-  derivedKey: CryptoKey,
-  id: string,
-): Promise<CryptoKey> {
-  const rec = await getRecord(id);
-  if (!rec) throw new Error("Ключ не найден");
-
-  const iv = new Uint8Array(base64ToArrayBuffer(rec.privateKeyBackup.ivB64));
-  const encrypted = base64ToArrayBuffer(
-    rec.privateKeyBackup.encryptedPrivateKeyB64,
-  );
-
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    derivedKey,
-    encrypted,
-  );
-
-  return crypto.subtle.importKey("pkcs8", decrypted, RSA_IMPORT_PARAMS, false, [
-    "decrypt",
-  ]);
 }
 
 /* Удалить запись ключа */
@@ -294,7 +263,6 @@ export async function importPrivateKeyAndStore(
   password: string,
   keyId: string,
 ) {
-  ;
   try {
     // проверяем, что приватный ключ можно импортировать
     await crypto.subtle.importKey(
@@ -318,7 +286,7 @@ export async function importPrivateKeyAndStore(
     const record: KeyRecord = {
       id: keyId,
       publicKeyJwk,
-      privateKeyBackup: {
+      privateKeyJwk: {
         encryptedPrivateKeyB64: arrayBufferToBase64(encrypted),
         ivB64: arrayBufferToBase64(iv.buffer),
         saltB64: arrayBufferToBase64(salt.buffer),
@@ -338,25 +306,23 @@ export async function importPrivateKeyAndStore(
  * Функция расшифрует приватный pkcs8 при помощи пароля и затем вызовет importPrivateKeyAndStore
  */
 export async function restorePrivateKeyFromBackup(
-  backup: JsonWebKeys,
+  backup: Omit<KeyRecord, "id">,
   password: string,
   id: string,
 ) {
   try {
     const salt = new Uint8Array(
-      base64ToArrayBuffer(backup.privateKeyBackup.saltB64),
+      base64ToArrayBuffer(backup.privateKeyJwk.saltB64),
     );
-    const iv = new Uint8Array(
-      base64ToArrayBuffer(backup.privateKeyBackup.ivB64),
-    );
+    const iv = new Uint8Array(base64ToArrayBuffer(backup.privateKeyJwk.ivB64));
     const encrypted = base64ToArrayBuffer(
-      backup.privateKeyBackup.encryptedPrivateKeyB64,
+      backup.privateKeyJwk.encryptedPrivateKeyB64,
     );
 
     const akey = await deriveKeyFromPassword(
       password,
       salt,
-      Number(backup.privateKeyBackup.iterations),
+      Number(backup.privateKeyJwk.iterations),
     );
     const decrypted = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv },

@@ -182,6 +182,8 @@ export const ChatList = () => {
             />
           </div>
         </div>
+
+        {/* Чаты пользоваиеля */}
         <div className="overflow-y flex-1">
           {chats.length > 0 ? (
             chats.map((chat) => {

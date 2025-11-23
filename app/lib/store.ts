@@ -56,9 +56,6 @@ const messageUtils = {
     if (!chat.messages?.[0]) return chat;
 
     const lastMessage = messages.at(-2);
-    console.log("lastMessage", lastMessage);
-    console.log("chat.messages[0].id", chat.messages[0].id);
-    console.log("messages[0]?.id", messages[0]?.id);
     if (chat.messages[0].id === deletedMessageId && lastMessage) {
       return {
         ...chat,
@@ -107,9 +104,10 @@ export const useChatStore = create<ChatState>((set) => ({
       },
     })),
 
-  addMessageToEnd: (message) =>
+  addMessageToEnd: async (message) => {
     set((state) => {
       const { chatId } = message;
+
       const chatMessages = state.messages[chatId] || [];
       // Проверка на дубликат
       if (chatMessages.some((m) => m.id === message.id)) {
@@ -130,7 +128,8 @@ export const useChatStore = create<ChatState>((set) => ({
           [chatId]: [...chatMessages, message],
         },
       };
-    }),
+    });
+  },
 
   removeMessage: (message) =>
     set((state) => {

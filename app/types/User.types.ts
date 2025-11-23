@@ -1,5 +1,5 @@
 import z from "zod";
-import { privateKeyBackupSchema } from "../lib/crypto/types/keys.types";
+import { privateKeyJwkSchema } from "../lib/crypto/types/keys.types";
 import { timestampSchema, userBaseSchema } from "./Common.types";
 
 export const userSchema = z.object({
@@ -7,7 +7,7 @@ export const userSchema = z.object({
   phone: z.string(),
   isOnline: z.boolean(),
   lastSeen: timestampSchema.nullable(),
-  privateKeyJwk: privateKeyBackupSchema.nullable(),
+  privateKeyJwk: privateKeyJwkSchema.nullable(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

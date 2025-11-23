@@ -21,11 +21,11 @@ interface SocketProviderProps {
 }
 export const SocketProvider = ({ children, token }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const { setUserId, addMessageToEnd, removeMessage, userId, password } =
+  const { setUserId, addMessageToEnd, removeMessage, password, userId } =
     useChatStore();
   const { decryptedMessage } = useChat();
   useEffect(() => {
-    if (!token) return;
+    if (!token || !userId || !password) return;
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3001";
     const socketUrl = new URL(API_URL).origin;
     const newSocket = io(socketUrl, {
@@ -35,7 +35,7 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       rejectUnauthorized: process.env.NODE_ENV !== "development",
     });
     newSocket.on("connect", () => {
-      console.log("✅ WebSocket connected:", newSocket.id);
+      log(`Debug:✅ WebSocket connected: ${newSocket.id}`);
       webRTCManager.initialize(newSocket);
     });
     newSocket.on("connect_error", (err) => {
@@ -50,10 +50,8 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       webRTCManager.closeConnection();
     });
     newSocket.on("message:new", async (message: MessageResponse) => {
-      console.log(userId, password);
-      if (!userId || !password) return;
       try {
-        const decodeMessage = await decryptedMessage(message, userId, password);
+        const decodeMessage = await decryptedMessage(message);
         if (!decodeMessage) return console.log(decodeMessage);
         addMessageToEnd(decodeMessage);
       } catch (error) {
@@ -66,15 +64,16 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     setSocket(newSocket);
     return () => {
       newSocket.disconnect();
+      setSocket(null);
     };
   }, [
     token,
     setUserId,
     addMessageToEnd,
     removeMessage,
-    userId,
-    password,
     decryptedMessage,
+    password,
+    userId,
   ]);
   return (
     <SocketContext.Provider value={{ socket }}>

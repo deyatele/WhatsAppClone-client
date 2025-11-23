@@ -23,7 +23,7 @@ export interface PaginationState {
 export type Chat = z.infer<typeof chatSchema>;
 export type ChatParticipant = z.infer<typeof userBaseSchema>;
 
-const chatShemaResponse = z.object({
+export const chatShemaResponse = z.object({
   id: z.string(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,

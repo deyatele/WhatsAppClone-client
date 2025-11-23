@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { AuthForm } from "../components/AuthForm";
-import { generateAndStoreKeyPair } from "../lib/crypto/keyManager";
+import { generateAndStoreKeyPair, putRecord } from "../lib/crypto/keyManager";
 import { registerAction } from "../lib/serverActions";
 
 // Схема валидации для формы регистрации
@@ -62,13 +62,36 @@ export default function RegisterPage() {
     data: RegisterFormData,
   ): Promise<RegisterResult> => {
     try {
-      const { privateKeyBackup, publicKeyJwk } = await generateAndStoreKeyPair(
+      const { privateKeyJwk, publicKeyJwk } = await generateAndStoreKeyPair(
         data.password,
       );
-      return await registerAction({ ...data, privateKeyBackup, publicKeyJwk });
+
+      const user = await registerAction({
+        ...data,
+        privateKeyJwk,
+        publicKeyJwk,
+      });
+      if ("error" in user && !user.success) throw new Error(user.error);
+
+      if ("id" in user) {
+        try {
+          await putRecord({ id: user.id, privateKeyJwk, publicKeyJwk });
+        } catch (error) {
+          console.error(error);
+          throw new Error(
+            error instanceof Error ? error.message : JSON.stringify(error),
+          );
+        }
+      } else throw new Error("Данные с сервера не коректны. Нет userId");
+
+      return { success: true };
+      
     } catch (e) {
-      console.error("Ошибка генерации ключей:", e);
-      return { success: false, error: "Ошибка генерации ключей" };
+      console.error("Ошибка регистрации", e);
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : JSON.stringify(e),
+      };
     }
   };
 

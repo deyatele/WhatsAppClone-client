@@ -17,28 +17,28 @@ export type RsaPublicKeyJwk = z.infer<typeof rsaPublicKeyJwkSchema>;
 /**
  * Схема данных бэкапа приватного ключа
  */
-export const privateKeyBackupSchema = z.object({
+export const privateKeyJwkSchema = z.object({
   encryptedPrivateKeyB64: z.string(),
   ivB64: z.string(),
   saltB64: z.string(),
   iterations: z.string(), // Минимальное безопасное количество итераций
 });
 
-export type PrivateKeyBackup = z.infer<typeof privateKeyBackupSchema>;
+export type privateKeyJwk = z.infer<typeof privateKeyJwkSchema>;
 
 export type KeyRecord = {
   id: string;
   publicKeyJwk: RsaPublicKeyJwk;
-  privateKeyBackup: PrivateKeyBackup;
+  privateKeyJwk: privateKeyJwk;
 };
 
 /**
  * DTO для загрузки бэкапа приватного ключа
  */
-export type JsonWebKeyPrivate = Omit<PrivateKeyBackup, "createdAt">;
+export type JsonWebKeyPrivate = Omit<privateKeyJwk, "createdAt">;
 
 export type JsonWebKeys = {
   id: string;
   publicKeyJwk: RsaPublicKeyJwk;
-  privateKeyBackup: JsonWebKeyPrivate;
+  privateKeyJwk: JsonWebKeyPrivate;
 };

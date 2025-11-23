@@ -12,14 +12,15 @@ import {
 import type { JsonWebKeyPrivate } from "./crypto/types/keys.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export type RegisterDto = {
   phone: string;
   password: string;
   email?: string;
   name?: string;
-  publicKeyJwk?: JsonWebKey;
-  privateKeyBackup?: JsonWebKeyPrivate;
+  publicKeyJwk: JsonWebKey;
+  privateKeyJwk: JsonWebKeyPrivate;
 };
 
 export type LoginDto = {
@@ -38,14 +39,12 @@ export async function fetchApi<T = unknown>(
       ...options.headers,
     },
   };
-
   if (process.versions?.node && process.env.NODE_ENV === "development") {
     const https = await import("node:https");
     fetchOptions.agent = new https.Agent({
       rejectUnauthorized: false,
     });
   }
-
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
   let parsed: unknown = null;
   try {
@@ -53,7 +52,6 @@ export async function fetchApi<T = unknown>(
   } catch {
     parsed = null;
   }
-
   if (!response.ok) {
     let msg = response.statusText || "Server error";
 
@@ -62,6 +60,8 @@ export async function fetchApi<T = unknown>(
 
       if ("message" in p && typeof p.message === "string") {
         msg = p.message;
+      } else if ("message" in p && Array.isArray(p.message) && typeof p.message[0] === "string") {
+        msg = p.message.join(', ')
       } else if (
         "error" in p &&
         typeof p.error === "object" &&
@@ -126,6 +126,45 @@ const paginatedMessagesSchema = z.object({
 });
 
 export const chatApi = {
+  async createChat(ovnerUserId: string): Promise<{ chatId: string }> {
+    const fetchOptions: RequestInit & { agent?: object } = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({ ovnerUserId }),
+    };
+
+    const response = await fetch(`${BASE_URL}/api/chats/create`, fetchOptions);
+    const jsonData = await response.json();
+
+    return z.object({ chatId: z.string() }).parse({ chatId: jsonData.id });
+  },
+
+  async getInviteToken(): Promise<{ id: string }> {
+    const response = await fetch(`${BASE_URL}/api/chats/invite`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "GET",
+    });
+    const jsonData = await response.json();
+    return z.object({ id: z.string() }).parse(jsonData);
+  },
+
+  async getUserInviteChat(tokenId: string): Promise<{ userId: string }> {
+    const response = await fetch(`${BASE_URL}/api/chats/invite`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({ tokenId }),
+    });
+
+    const jsonData = await response.json();
+    return z.object({ userId: z.string() }).parse(jsonData);
+  },
+
   async getMyChats(token: string): Promise<ChatResponse[]> {
     const data = await fetchApi("/chats/my", {
       headers: { Authorization: `Bearer ${token}` },
@@ -147,7 +186,6 @@ export const chatApi = {
     const response = await fetch(url.toString());
     if (!response.ok) {
       const errorData = await response.json();
-      console.log(errorData);
       throw new Error(errorData.message || "Failed to fetch messages");
     }
     const data = await response.json();

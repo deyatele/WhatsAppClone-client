@@ -7,9 +7,7 @@ import {
   getMessageStatus,
   getStatusColor,
   type MessageStatus,
-  setMessageStatus,
 } from "../lib/crypto/messageStatus";
-import { retrySend } from "../lib/crypto/retryMechanism";
 import { formaterDate } from "../lib/utils";
 import type { Message as MessageType } from "../types";
 import { DeleteModal } from "./modal/deleteModal";
@@ -19,14 +17,12 @@ interface MessageProps {
   message: MessageType;
   isCurrentUser: boolean;
   handleDeleteMessage: (id: string, flag?: boolean) => void;
-  onResend?: (msg: MessageType) => Promise<boolean>; // опционально, для повторной отправки
 }
 
 export const Message = ({
   message,
   isCurrentUser,
   handleDeleteMessage,
-  onResend,
 }: MessageProps) => {
   const { openModal, closeModal } = useModal();
   const [status, setStatus] = useState("pending");
@@ -46,21 +42,6 @@ export const Message = ({
       />,
     );
   };
-
-  // повторная отправка
-  async function handleRetry() {
-    try {
-      setMessageStatus(message.id, "pending");
-      setStatus("pending");
-      if (onResend)
-        await retrySend(message.message, async () => onResend(message));
-      setMessageStatus(message.id, "decrypted");
-      setStatus("decrypted");
-    } catch {
-      setMessageStatus(message.id, "failed");
-      setStatus("failed");
-    }
-  }
 
   const color = getStatusColor(status as MessageStatus);
 
@@ -143,7 +124,7 @@ export const Message = ({
         <span>{status}</span>
         {(status === "failed" || status === "undelivered") && (
           <button
-            onClick={handleRetry}
+            onClick={() => console.log("Повторная отправка")}
             className="underline text-xs hover:text-white"
           >
             Повторить

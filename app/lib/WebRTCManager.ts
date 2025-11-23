@@ -23,10 +23,11 @@ class WebRTCManager {
   private usingFront = true;
 
   public initialize(socket: Socket) {
-    if (this.socket) {
+    if (this.socket === socket) {
       return;
     }
-    log(`Debug:CallStae Init: ${useChatStore.getState().callState}`);
+
+    log(`Debug:CallState Init: ${useChatStore.getState().callState}`);
     this.socket = socket;
     this._registerSocketListeners();
     log("Debug:WebRTCManager initialized");
@@ -215,7 +216,7 @@ class WebRTCManager {
     try {
       const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
-
+      console.log("call:start");
       this.socket.emit("call:start", { to: toUserId, sdp: offer });
 
       // Also emit low-level offer for signaling, as seen in client.js

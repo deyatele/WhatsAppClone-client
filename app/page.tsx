@@ -9,7 +9,7 @@ export default async function Home({
 }: {
   searchParams: Promise<{ invite?: string }>;
 }) {
-  const { chats, token } = await getChatsAndToken();
+  const { chats } = await getChatsAndToken();
   const searchParamsResolved = await searchParams;
   const inviteToken = searchParamsResolved.invite;
   return (
@@ -19,8 +19,8 @@ export default async function Home({
         <ChatList />
       </div>
       <div className="w-2/3">
-        {inviteToken && token ? (
-          <JoinChatModale inviteToken={inviteToken} accessToken={token} />
+        {inviteToken ? (
+          <JoinChatModale inviteToken={inviteToken} />
         ) : (
           <ChatWindow />
         )}

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { LoginDto, RegisterDto } from "../lib/api";
 import { authApi } from "../lib/api";
+import type { User } from "../types";
 import type { JsonWebKeys } from "./crypto/types/keys.types";
 
 const ACCESS_TOKEN_LIFETIME_SEC =
@@ -54,7 +55,11 @@ export async function loginAction(dto: LoginDto) {
   }
 }
 
-export async function registerAction(dto: RegisterDto) {
+export async function registerAction(
+  dto: RegisterDto,
+): Promise<
+  ({ success: boolean } & User) | { success: boolean; error: string }
+> {
   try {
     await authApi.register(dto);
 
@@ -62,11 +67,10 @@ export async function registerAction(dto: RegisterDto) {
       identifier: dto.phone,
       password: dto.password,
     });
+    const { accessToken, refreshToken, user } = loginData;
 
-    await setAuthCookies(loginData.accessToken, loginData.refreshToken);
-    return {
-      success: true,
-    };
+    await setAuthCookies(accessToken, refreshToken);
+    return { success: true, ...user };
   } catch (error) {
     console.error("Register Action Failed:", error);
     return {
@@ -152,8 +156,6 @@ export async function updateMyKeys(
       },
       body: JSON.stringify(keyPair),
     });
-
-    console.log(res);
 
     if (!res.ok) {
       const errorText = await res.text();

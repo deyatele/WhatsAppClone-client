@@ -33,9 +33,8 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  const refreshToken = request.cookies.get("refreshToken")?.value;
   if (!accessToken) {
-    const refreshToken = request.cookies.get("refreshToken")?.value;
-
     if (refreshToken) {
       try {
         const refreshUrl = new URL("/api/auth/refresh", request.url);
@@ -86,6 +85,26 @@ export async function middleware(request: NextRequest) {
           request.url,
         ),
       );
+    } else {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const result = await fetch(`${API_URL}/users/me`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (result.status === 404) {
+        const responce = NextResponse.redirect(
+          new URL(
+            `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+            request.url,
+          ),
+        );
+        responce.cookies.delete("accessToken")
+        responce.cookies.delete("refreshToken")
+        return responce
+      }
     }
 
     const response = NextResponse.next();

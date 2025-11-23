@@ -1,15 +1,21 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const { password } = await request.json();
   const cookieStore = await cookies();
   const token = cookieStore.get("accessToken")?.value;
-
+  const inviteToken = request.nextUrl.searchParams.get("invite");
   if (!token) {
-    return NextResponse.json(
+    NextResponse.json(
       { message: "Токен авторизации не найден" },
       { status: 401 },
+    );
+    return NextResponse.redirect(
+      new URL(
+        `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+        request.url,
+      ),
     );
   }
 

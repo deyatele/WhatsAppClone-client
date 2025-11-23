@@ -4,6 +4,7 @@ import { loginAction } from "../serverActions";
 import {
   findRecordIdByPublicJwk,
   generateAndStoreKeyPair,
+  putRecord,
   removeKey,
   restorePrivateKeyFromBackup,
 } from "./keyManager";
@@ -54,10 +55,8 @@ export async function loginWithKeyVerification(dto: LoginDto) {
     try {
       const user = loginResult.user;
       let localId: string | null = null;
-console.log(user)
       if (user.publicKeyJwk) {
         localId = await findRecordIdByPublicJwk(user.publicKeyJwk);
-        console.log("Found local key ID:", localId);
       }
 
       if (!localId && user.publicKeyJwk && user.privateKeyJwk) {
@@ -65,11 +64,10 @@ console.log(user)
           const { id } = await restorePrivateKeyFromBackup(
             {
               publicKeyJwk: user.publicKeyJwk,
-              privateKeyBackup: user.privateKeyJwk,
-              id: user.id,
+              privateKeyJwk: user.privateKeyJwk,
             },
             dto.password,
-            user.id
+            user.id,
           );
           localId = id;
         } catch (error) {
@@ -78,23 +76,18 @@ console.log(user)
       }
 
       if (!localId) {
-        const { id: newId, ...keyPairRec } = await generateAndStoreKeyPair(
-          dto.password,
-          user.id,
-        );
-
-        console.log("Generating new key pair");
-        console.log(keyPairRec);
+        const keyPairRec = await generateAndStoreKeyPair(dto.password);
+         await putRecord({ id: user.id, ...keyPairRec });
+        
         const updResult = await updateMyKeysClient(
           keyPairRec,
           loginResult.accessToken,
           user.id,
         );
 
-        console.log("updResult", updResult);
 
         if (updResult && typeof updResult === "object" && !updResult.success) {
-          await removeKey(newId).catch((e) => {
+          await removeKey(user.id).catch((e) => {
             console.log(e);
           });
           return {
