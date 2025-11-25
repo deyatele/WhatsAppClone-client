@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 // React imports
 import { useCallback, useEffect, useState } from "react";
-
+import { addChat, nameProgect } from "../constants/constant.project";
 // Internal modules
 import { logoutAction } from "../lib/serverActions";
 import { useChatStore } from "../lib/store";
@@ -102,7 +102,9 @@ export const ChatList = () => {
       <div className="h-full bg-gray-800 border-r border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold cursor-default">Расскажи и ...</h2>
+            <h2 className="text-xl font-bold cursor-default whitespace-nowrap">
+              {nameProgect}
+            </h2>
             <div className="flex items-center gap-3">
               <div className="group relative">
                 <button
@@ -113,7 +115,7 @@ export const ChatList = () => {
                   <NewChatIcon />
                 </button>
                 <span className="absolute z-50 top-12 right-3 opacity-0 group-hover:opacity-100 transition-opacity  duration-0 group-hover:delay-300 rounded bg-gray-800 p-2 text-xs text-white whitespace-nowrap">
-                  Добавить чат
+                  {addChat}
                 </span>
               </div>
               <Dropdown
@@ -241,9 +243,9 @@ export const ChatList = () => {
             </div>
           )}
         </div>
-        <div className="pb-15">
-          <LogPanel />
-        </div>
+      </div>
+      <div className="absolute z-[1000] bottom-0 pb-15 w-[100%]">
+        <LogPanel />
       </div>
       <Modal isOpen={isPasswordModalOpen} onClose={() => {}}>
         <PasswordModale

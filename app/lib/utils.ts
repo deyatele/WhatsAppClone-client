@@ -1,3 +1,5 @@
+import { log } from "./log";
+
 export const formaterDate = (dateString: string): string => {
   const dateNow = new Date();
   const yesterday = new Date(dateNow);
@@ -25,10 +27,8 @@ export const formaterDate = (dateString: string): string => {
       minute: "2-digit",
     })}`;
   } catch (error) {
-    console.log(
-      "Ошибка в получении даты. Нет данных или не правильный формат",
-      `Переданные данные: ${dateString}`,
-      error,
+    log(
+      `ERROR: Ошибка в получении даты. Нет данных или не правильный формат. Переданные данные: ${dateString}. ${error}`,
     );
     return "";
   }

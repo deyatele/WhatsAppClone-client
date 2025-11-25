@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { log } from "../../../lib/log";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -20,12 +21,12 @@ export async function GET(req: NextRequest) {
         Authorization: `Bearer ${token}`,
       },
     });
-const res = result.json()
-   console.log(res)
+    const res = await result.json();
+   
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(res);
   } catch (e) {
-    console.error("API /users/[id]/keys error:", e);
+    log(`ERROR: API /users/me error: ${e}`);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Internal error" },
       { status: 500 },

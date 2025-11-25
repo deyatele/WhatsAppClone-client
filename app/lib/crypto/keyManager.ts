@@ -1,3 +1,4 @@
+import { log } from "../log";
 /* Ключевой менеджер.
    Интерфейсы и экспорт функций:
    - generateAndStoreKeyPair(password, id?)
@@ -178,8 +179,8 @@ export async function generateAndStoreKeyPair(
 
     return record;
   } catch (e) {
-    console.log(e);
-    throw new Error(`"Не удалось сгенерировать и сохранить ключ" ${e}`);
+    log(`ERROR: ${e}`);
+    throw new Error(`ERROR: Не удалось сгенерировать и сохранить ключ: ${e}`);
   }
 }
 

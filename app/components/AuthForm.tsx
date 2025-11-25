@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { Path, Resolver, SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import type { ZodObject, ZodRawShape, z } from "zod";
+import { log } from "../lib/log";
 import { useChatStore } from "../lib/store";
 
 interface AuthFormProps<S extends ZodObject<ZodRawShape>> {
@@ -63,7 +64,6 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
         if (inviteToken) {
           router.replace(`/?invite=${inviteToken}`);
         } else {
-          console.log(result);
           router.replace("/");
         }
       } else if (result && !result.success) {
@@ -71,7 +71,7 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.log(error);
+      log(`ERROR: ${error}`);
       if (
         error &&
         typeof error === "object" &&

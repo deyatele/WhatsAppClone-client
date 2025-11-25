@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getUserIdFromToken } from "./app/lib/JWTVeriify";
+import { log } from "./app/lib/log";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -15,6 +16,7 @@ export async function middleware(request: NextRequest) {
     accessToken = null;
   }
 
+ 
   // Обработка пригласительной ссылки
   if (isJoinChatRoute && inviteToken) {
     if (!accessToken) {
@@ -56,7 +58,7 @@ export async function middleware(request: NextRequest) {
             );
         }
       } catch (e) {
-        console.log(e);
+        log(`ERROR: ${e}`);
         return NextResponse.redirect(
           new URL(
             `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
@@ -76,6 +78,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
   }
+  
 
   if (accessToken) {
     if (isAuthPage) {
@@ -101,9 +104,9 @@ export async function middleware(request: NextRequest) {
             request.url,
           ),
         );
-        responce.cookies.delete("accessToken")
-        responce.cookies.delete("refreshToken")
-        return responce
+        responce.cookies.delete("accessToken");
+        responce.cookies.delete("refreshToken");
+        return responce;
       }
     }
 

@@ -60,8 +60,12 @@ export async function fetchApi<T = unknown>(
 
       if ("message" in p && typeof p.message === "string") {
         msg = p.message;
-      } else if ("message" in p && Array.isArray(p.message) && typeof p.message[0] === "string") {
-        msg = p.message.join(', ')
+      } else if (
+        "message" in p &&
+        Array.isArray(p.message) &&
+        typeof p.message[0] === "string"
+      ) {
+        msg = p.message.join(", ");
       } else if (
         "error" in p &&
         typeof p.error === "object" &&

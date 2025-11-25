@@ -11,9 +11,9 @@ class WebRTCManager {
   private isRemoteDescriptionSet = false;
   private currentCallUserId: string | null = null;
   private currentCallId: string | null = null;
-  private suppressRestart = false; // Added for ICE restart logic
+  private suppressRestart = false; // Добавлено для логики перезапуска ICE
 
-  // Media stream management
+  // Управление медиапотоками
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
   private isScreenSharing = false;
@@ -27,12 +27,13 @@ class WebRTCManager {
       return;
     }
 
-    log(`Debug:CallState Init: ${useChatStore.getState().callState}`);
+    log(
+      `DEBUG:Инициализация состояния вызова: ${useChatStore.getState().callState}`,
+    );
     this.socket = socket;
     this._registerSocketListeners();
-    log("Debug:WebRTCManager initialized");
+    log("DEBUG:WebRTCManager инициализирован");
 
-    // Add unload listeners
     window.addEventListener("beforeunload", this.closeConnection.bind(this));
     window.addEventListener("pagehide", this.closeConnection.bind(this));
   }
@@ -41,19 +42,17 @@ class WebRTCManager {
     if (!this.socket) return;
 
     this.socket.on("call:incoming", this._handleIncomingCall.bind(this));
-    this.socket.on("call:offer", this._handleOffer.bind(this)); // Added handler for low-level offer
+    this.socket.on("call:offer", this._handleOffer.bind(this));
     this.socket.on("call:answer", this._handleAnswer.bind(this));
     this.socket.on("call:candidate", this._handleIceCandidate.bind(this));
     this.socket.on("call:ended", this.closeConnection.bind(this));
     this.socket.on("call:accepted", (payload) => {
       if (payload?.id) this.currentCallId = payload.id;
-      log(
-        `Debug:Call accepted by ${payload.from}, callId=${this.currentCallId}`,
-      );
+      log(`DEBUG:Вызов принят ${payload.from}, callId=${this.currentCallId}`);
     });
     this.socket.on("call:started", (payload) => {
       if (payload?.call?.id) this.currentCallId = payload.call.id;
-      log(`Debug:Call started, callId=${this.currentCallId}`);
+      log(`DEBUG:Вызов начат, callId=${this.currentCallId}`);
     });
   }
 
@@ -65,9 +64,14 @@ class WebRTCManager {
       return this.localStream;
     }
     try {
+      await this._initVideoDevices();
       const constraints = {
         video: video
-          ? { width: { ideal: 1280 }, height: { ideal: 720 } }
+          ? {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              deviceId: { exact: this.frontCamera?.deviceId },
+            }
           : false,
         audio: audio
           ? { noiseSuppression: true, echoCancellation: true }
@@ -76,13 +80,148 @@ class WebRTCManager {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = stream;
       useChatStore.getState().setLocalStream(stream);
-      log("Debug:✅ Got local stream");
+      log("DEBUG:✅ Локальный поток получен");
       return stream;
     } catch (error) {
       log(
-        `Error ❌ Failed to get local stream ${error && error instanceof Error ? error.message : String(error)}`,
+        `ERROR ❌ Не удалось получить локальный поток ${error && error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
+    }
+  }
+
+  private async _initVideoDevices() {
+    if (this.frontCamera && this.backCamera) return;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = devices.filter((d) => d.kind === "videoinput");
+    this.frontCamera =
+      videoInputs.find((d) => /front|user/i.test(d.label)) || videoInputs[0];
+    this.backCamera =
+      videoInputs.find((d) => /back|rear|environment/i.test(d.label)) ||
+      videoInputs[1] ||
+      videoInputs[0];
+    log(
+      `DEBUG:Найдены видеоустройства: 
+        front: ${JSON.stringify(this.frontCamera)},
+        back: ${JSON.stringify(this.backCamera)}`,
+    );
+  }
+
+  public async switchCamera() {
+    if (!this.localStream || !this.peerConnection) return;
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {}
+        this.localStream?.removeTrack(t);
+      });
+    }
+    await new Promise((r) => setTimeout(r, 50));
+
+    // подождать, чтобы Android отпустил камеру
+    await new Promise((r) => setTimeout(r, 50));
+    try {
+      await this._initVideoDevices();
+
+      this.usingFront = !this.usingFront;
+      const preferredDeviceId = this.usingFront
+        ? this.frontCamera?.deviceId
+        : this.backCamera?.deviceId;
+
+      const tryConstraints = (deviceId?: string) =>
+        deviceId
+          ? { video: { deviceId: { exact: deviceId } } }
+          : { video: { facingMode: this.usingFront ? "user" : "environment" } };
+
+      let newStream: MediaStream | null = null;
+      let lastError: unknown = null;
+
+      const constraintsList = [
+        tryConstraints(preferredDeviceId),
+        tryConstraints(undefined),
+      ];
+
+      for (const c of constraintsList) {
+        try {
+          newStream = await navigator.mediaDevices.getUserMedia({
+            ...c,
+            audio: false,
+          } as MediaStreamConstraints);
+          if (newStream?.getVideoTracks().length) break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!newStream) {
+        log(
+          `ERROR:❌ Не удается получить новый поток с камеры (пробовали deviceId и facingMode). ${String(
+            lastError,
+          )}`,
+        );
+        return;
+      }
+
+      const newTrack = newStream.getVideoTracks()[0];
+      if (!newTrack) {
+        for (const t of newStream.getTracks()) {
+          t.stop();
+        }
+        log("ERROR:❌ Новый поток не имеет видеодорожки");
+        return;
+      }
+
+      let sender = this.peerConnection
+        .getSenders()
+        .find((s) => s.track && s.track.kind === "video");
+
+      if (!sender) {
+        const tr = this.peerConnection
+          .getTransceivers()
+          .find((t) => t.sender && t.sender.track?.kind === "video");
+        sender = tr?.sender;
+      }
+
+      if (sender?.replaceTrack) {
+        await sender.replaceTrack(newTrack);
+      } else {
+        this.peerConnection.addTrack(newTrack, this.localStream);
+      }
+
+      const audioTracks = this.localStream.getAudioTracks();
+      this.localStream.getVideoTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {}
+        try {
+          this.localStream?.removeTrack(t);
+        } catch {}
+      });
+      this.localStream.addTrack(newTrack);
+      audioTracks.forEach((t) => {
+        if (!this.localStream?.getAudioTracks().includes(t)) {
+          this.localStream?.addTrack(t);
+        }
+      });
+
+      useChatStore.getState().setLocalStream(this.localStream);
+
+      // остановить все лишние дорожки во вспомогательном потоке, кроме той, которую мы использовали
+      newStream.getTracks().forEach((t) => {
+        if (t !== newTrack)
+          try {
+            t.stop();
+          } catch {}
+      });
+
+      log(
+        `DEBUG:🔄 Камера переключена на ${this.usingFront ? "переднюю" : "заднюю"}`,
+      );
+    } catch (e) {
+      log(
+        `ERROR ❌ сбой switchCamera: ${e && e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
@@ -92,12 +231,10 @@ class WebRTCManager {
         `/api/turn-credentials?userId=${useChatStore.getState().userId}`,
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch TURN credentials");
+        throw new Error("Не удалось получить учетные данные TURN");
       }
       const turnConfig = await response.json();
-      log(
-        `Debug:✅ Obtained TURN configuration" ${JSON.stringify(turnConfig)}`,
-      );
+      log(`DEBUG:✅ Получена конфигурация TURN" ${JSON.stringify(turnConfig)}`);
       return {
         iceServers: [
           // { urls: 'stun:stun.l.google.com:19302' },
@@ -107,7 +244,7 @@ class WebRTCManager {
       };
     } catch (error) {
       log(
-        `Error:⚠️ Could not get TURN credentials, using STUN only. ${error && error instanceof Error ? error.message : String(error)}`,
+        `ERROR:⚠️ Не удалось получить учетные данные TURN, используется только STUN. ${error && error instanceof Error ? error.message : String(error)}`,
       );
       return {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -117,7 +254,7 @@ class WebRTCManager {
 
   private async _initPeerConnection(toUserId: string) {
     if (this.peerConnection) {
-      log("Debug:Peer connection already exists.");
+      log("DEBUG:Peer-соединение уже существует.");
       return;
     }
     this.currentCallUserId = toUserId;
@@ -131,7 +268,7 @@ class WebRTCManager {
     });
 
     this.peerConnection.ontrack = (event) => {
-      log("Debug:📡 Remote track received");
+      log("DEBUG:📡 Получена удаленная дорожка");
       this.remoteStream = event.streams[0];
       useChatStore.getState().setRemoteStream(this.remoteStream);
     };
@@ -147,13 +284,13 @@ class WebRTCManager {
 
     this.peerConnection.oniceconnectionstatechange = () => {
       const state = this.peerConnection?.iceConnectionState;
-      log(`Debug:🧊 ICE connection state: ${state}`);
+      log(`DEBUG:🧊 Состояние ICE-соединения: ${state}`);
 
       if (
         !this.suppressRestart &&
         (state === "disconnected" || state === "failed")
       ) {
-        log("Debug:🔄 Attempting to restore connection...");
+        log("DEBUG:🔄 Попытка восстановить соединение...");
         setTimeout(() => {
           if (
             !this.suppressRestart &&
@@ -168,7 +305,9 @@ class WebRTCManager {
     };
 
     this.peerConnection.onconnectionstatechange = () => {
-      log(`Debug:🔗 Connection state: ${this.peerConnection?.connectionState}`);
+      log(
+        `DEBUG:🔗 Состояние соединения: ${this.peerConnection?.connectionState}`,
+      );
       if (this.peerConnection?.connectionState === "connected") {
         useChatStore.getState().setCallState("connected");
       }
@@ -176,16 +315,21 @@ class WebRTCManager {
   }
 
   private async _restartIce() {
-    if (!this.peerConnection) return log("⚠️ No peerConnection for ICE restart");
+    if (!this.peerConnection)
+      return log("⚠️ Нет peerConnection для перезапуска ICE");
     if (this.peerConnection.signalingState !== "stable")
-      return log("Debug:⚠️ Signaling state is not stable");
+      return log("DEBUG:⚠️ Состояние сигнализации нестабильно");
     if (!this.currentCallUserId)
-      return log("Debug:❌ Cannot restart ICE: no current call user ID");
+      return log(
+        "DEBUG:❌ Не удается перезапустить ICE: нет идентификатора пользователя текущего вызова",
+      );
     if (useChatStore.getState().callState === "idle")
-      return log("Debug:⚠️ Call state is idle, not restarting ICE."); // Added safety check
+      return log(
+        "DEBUG:⚠️ Состояние вызова idle, перезапуск ICE не выполняется.",
+      ); // Добавлена проверка безопасности
 
     try {
-      log("Debug:🔄 Restarting ICE...");
+      log("DEBUG:🔄 Перезапуск ICE...");
       const offer = await this.peerConnection.createOffer({ iceRestart: true });
       await this.peerConnection.setLocalDescription(offer);
 
@@ -195,11 +339,13 @@ class WebRTCManager {
           sdp: this.peerConnection.localDescription,
           iceRestart: true,
         });
-        log(`Debug:📤 ICE restart offer sent to ${this.currentCallUserId}`);
+        log(
+          `DEBUG:📤 Предложение о перезапуске ICE отправлено ${this.currentCallUserId}`,
+        );
       }
     } catch (error) {
       log(
-        `Error:❌ ICE restart failed: ${
+        `ERROR:❌ сбой перезапуска ICE: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -207,7 +353,7 @@ class WebRTCManager {
   }
 
   public async initiateCall(toUserId: string) {
-    log(`Debug:📞 Initiating call to ${toUserId}`);
+    log(`DEBUG:📞 Инициация вызова к ${toUserId}`);
     useChatStore.getState().setCallState("calling");
     await this._initPeerConnection(toUserId);
 
@@ -219,11 +365,11 @@ class WebRTCManager {
       console.log("call:start");
       this.socket.emit("call:start", { to: toUserId, sdp: offer });
 
-      // Also emit low-level offer for signaling, as seen in client.js
+      // Также отправляем низкоуровневое предложение для сигнализации, как показано в client.js
       this.socket.emit("call:offer", { to: toUserId, sdp: offer });
     } catch (error) {
       log(
-        `❌ Error initiating call: ${
+        `❌ Ошибка инициации вызова: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -267,7 +413,7 @@ class WebRTCManager {
       return;
     }
 
-    // If it's an ICE restart offer or a re-negotiation
+    // Если это предложение о перезапуске ICE или повторном согласовании
     if (this.peerConnection && this.currentCallUserId === from) {
       try {
         await this.peerConnection.setRemoteDescription(
@@ -283,7 +429,7 @@ class WebRTCManager {
         });
       } catch (error) {
         log(
-          `❌ Error handling re-negotiation offer: ${
+          `❌ Ошибка обработки предложения о повторном согласовании: ${
             error && error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -301,7 +447,7 @@ class WebRTCManager {
   }
 
   public async answerCall() {
-    log("Debug:✅ Answering call");
+    log("DEBUG:✅ Ответ на вызов");
     const { incomingCall } = useChatStore.getState();
     if (!incomingCall || !this.socket) return;
 
@@ -318,7 +464,7 @@ class WebRTCManager {
       await this.peerConnection.setLocalDescription(answer);
 
       this.socket.emit("call:answer", { to: incomingCall.from, sdp: answer });
-      log("Debug:📤 Answer sent");
+      log("DEBUG:📤 Ответ отправлен");
 
       useChatStore.getState().setCallState("connected");
       useChatStore.getState().setIncomingCall(null);
@@ -326,7 +472,7 @@ class WebRTCManager {
       this._processIceCandidates();
     } catch (error) {
       log(
-        `❌ Error answering call: ${
+        `❌ Ошибка при ответе на вызов: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -347,11 +493,11 @@ class WebRTCManager {
         new RTCSessionDescription(sdp),
       );
       this.isRemoteDescriptionSet = true;
-      log("Debug:✅ Remote description (answer) set");
+      log("DEBUG:✅ Удаленное описание (ответ) установлено");
       this._processIceCandidates();
     } catch (error) {
       log(
-        `❌ Error handling answer: ${
+        `❌ Ошибка обработки ответа: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -365,13 +511,13 @@ class WebRTCManager {
     from: string;
     candidate: RTCIceCandidateInit;
   }) {
-    log(`Debug:🧊 ICE candidate received from ${from}`);
+    log(`DEBUG:🧊 ICE кандидат получен от ${from}`);
     if (!candidate) return;
 
     if (!this.peerConnection || !this.isRemoteDescriptionSet) {
       this.iceCandidateBuffer.push(candidate);
       log(
-        `Debug:💾 Buffering ICE candidate (${this.iceCandidateBuffer.length})`,
+        `DEBUG:💾 Буферизация ICE кандидата (${this.iceCandidateBuffer.length})`,
       );
       return;
     }
@@ -379,7 +525,7 @@ class WebRTCManager {
       await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {
       log(
-        `❌ Error adding ICE candidate: ${
+        `❌ Ошибка добавления ICE кандидата: ${
           error && error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -389,7 +535,7 @@ class WebRTCManager {
   private _processIceCandidates() {
     if (this.iceCandidateBuffer.length > 0) {
       log(
-        `Debug:🔄 Processing ${this.iceCandidateBuffer.length} buffered ICE candidates`,
+        `DEBUG:🔄 Обработка ${this.iceCandidateBuffer.length} буферизированных ICE кандидатов`,
       );
       this.iceCandidateBuffer.forEach((candidate) => {
         this.peerConnection?.addIceCandidate(candidate);
@@ -399,9 +545,9 @@ class WebRTCManager {
   }
 
   public closeConnection() {
-    log("Debug:❌ Closing connection");
+    log("DEBUG:❌ Закрытие соединения");
     log(
-      `"Debug:To id: ${this.currentCallUserId}  Call Id: ${this.currentCallId}`,
+      `"DEBUG:To id: ${this.currentCallUserId}  Call Id: ${this.currentCallId}`,
     );
 
     if (this.currentCallId) {
@@ -428,7 +574,7 @@ class WebRTCManager {
     this.remoteSdp = null;
     this.isScreenSharing = false;
     this.savedCameraTrack = null;
-    this.suppressRestart = true; // Reset suppressRestart on call end
+    this.suppressRestart = true; // Сброс suppressRestart при завершении вызова
 
     useChatStore.getState().setPeerConnection(null);
     useChatStore.getState().setLocalStream(null);
@@ -437,13 +583,13 @@ class WebRTCManager {
     useChatStore.getState().setCallState("idle");
   }
 
-  // --- Media Controls ---
+  // --- Управление медиа ---
 
   public toggleAudio() {
     if (!this.localStream) return;
     this.localStream.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
-      log(`Debug:🎤 Microphone ${track.enabled ? "ON" : "OFF"}`);
+      log(`DEBUG:🎤 Микрофон ${track.enabled ? "ВКЛ" : "ВЫКЛ"}`);
     });
   }
 
@@ -451,61 +597,8 @@ class WebRTCManager {
     if (!this.localStream) return;
     this.localStream.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
-      log(`Debug:🎬 Camera ${track.enabled ? "ON" : "OFF"}`);
+      log(`DEBUG:🎬 Камера ${track.enabled ? "ВКЛ" : "ВЫКЛ"}`);
     });
-  }
-
-  private async _initVideoDevices() {
-    if (this.frontCamera && this.backCamera) return;
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoInputs = devices.filter((d) => d.kind === "videoinput");
-    this.frontCamera =
-      videoInputs.find((d) => /front|user/i.test(d.label)) || videoInputs[0];
-    this.backCamera =
-      videoInputs.find((d) => /back|rear|environment/i.test(d.label)) ||
-      videoInputs[1] ||
-      videoInputs[0];
-    log(
-      `Debug:Video devices found: ${{
-        front: this.frontCamera?.label,
-        back: this.backCamera?.label,
-      }}`,
-    );
-  }
-
-  public async switchCamera() {
-    await this._initVideoDevices();
-    if (!this.localStream || !this.peerConnection) return;
-
-    this.usingFront = !this.usingFront;
-    const deviceId = this.usingFront
-      ? this.frontCamera?.deviceId
-      : this.backCamera?.deviceId;
-    if (!deviceId) {
-      log("Debug:⚠️ Could not find camera to switch to.");
-      return;
-    }
-
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: { exact: deviceId } },
-    });
-    const newTrack = newStream.getVideoTracks()[0];
-
-    const sender = this.peerConnection
-      .getSenders()
-      .find((s) => s.track?.kind === "video");
-    if (sender) {
-      sender.replaceTrack(newTrack);
-    }
-
-    // also update local stream for the user to see
-    const oldTrack = this.localStream.getVideoTracks()[0];
-    this.localStream.removeTrack(oldTrack);
-    oldTrack.stop();
-    this.localStream.addTrack(newTrack);
-    useChatStore.getState().setLocalStream(this.localStream);
-
-    log(`Debug:🔄 Switched camera to ${this.usingFront ? "front" : "back"}`);
   }
 
   public async toggleScreenShare() {
@@ -532,10 +625,10 @@ class WebRTCManager {
 
         this.savedCameraTrack = null;
         this.isScreenSharing = false;
-        log("Debug:🖥️ Screen sharing stopped.");
+        log("DEBUG:🖥️ Демонстрация экрана остановлена.");
       }
     } else {
-      // Start screen share
+      // Начать демонстрацию экрана
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
@@ -543,10 +636,10 @@ class WebRTCManager {
         const screenTrack = displayStream.getVideoTracks()[0];
         if (!screenTrack) return;
 
-        this.savedCameraTrack = sender.track; // save current camera track
+        this.savedCameraTrack = sender.track; // сохранить текущую видеодорожку
         sender.replaceTrack(screenTrack);
 
-        // Update local view to show screen
+        // Обновить локальный вид для отображения экрана
         const newLocalStream = new MediaStream([
           screenTrack,
           ...(this.localStream?.getAudioTracks() || []),
@@ -556,14 +649,14 @@ class WebRTCManager {
 
         screenTrack.onended = () => {
           if (this.isScreenSharing) {
-            this.toggleScreenShare(); // Automatically revert when user stops sharing from browser UI
+            this.toggleScreenShare(); // Автоматически отключать, когда пользователь прекращает демонстрацию из интерфейса браузера
           }
         };
         this.isScreenSharing = true;
-        log("Debug:🖥️ Screen sharing started.");
+        log("DEBUG:🖥️ Демонстрация экрана начата.");
       } catch (error) {
         log(
-          `Error:❌ Could not start screen share ${
+          `ERROR:❌ Не удалось начать демонстрацию экрана ${
             error && error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -572,5 +665,5 @@ class WebRTCManager {
   }
 }
 
-// Export a singleton instance
+// Экспорт единственного экземпляра
 export const webRTCManager = new WebRTCManager();

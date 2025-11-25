@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { log } from "../lib/log";
 
 interface VideoPlayerProps {
   stream: MediaStream | null;
@@ -26,14 +27,16 @@ export const VideoPlayer = forwardRef<
         internalRef.current.onloadedmetadata = () => {
           internalRef.current
             ?.play()
-            .catch((e) => console.error("VideoPlayer: Autoplay failed:", e));
+            .catch((e) =>
+              log(`ERROR: VideoPlayer: Ошибка автовоспроизведения: ${e}`),
+            );
         };
       } else {
-        console.log("VideoPlayer: Stream is null.");
+        log("DEBUG: VideoPlayer: Поток отсутствует.");
         internalRef.current.srcObject = null;
       }
     } else {
-      console.log("VideoPlayer: internalRef.current is null.");
+      log("DEBUG: VideoPlayer: internalRef.current равен null.");
     }
   }, [stream]);
 

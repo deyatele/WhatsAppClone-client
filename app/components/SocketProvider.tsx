@@ -35,27 +35,27 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       rejectUnauthorized: process.env.NODE_ENV !== "development",
     });
     newSocket.on("connect", () => {
-      log(`Debug:✅ WebSocket connected: ${newSocket.id}`);
+      log(`DEBUG:✅ WebSocket подключен: ${newSocket.id}`);
       webRTCManager.initialize(newSocket);
     });
     newSocket.on("connect_error", (err) => {
-      console.error("❌ WebSocket connection error:", err.message);
+      log(`ERROR:❌ Ошибка подключения WebSocket: ${err.message}`);
     });
     newSocket.on("id", (id: string) => {
       setUserId(id);
-      log(`My ID: ${id}`);
+      log(`DEBUG:Мой ID: ${id}`);
     });
     newSocket.on("call:ended", (payload) => {
-      log(`📴 call:ended received ${payload}`);
+      log(`DEBUG:📴 call:ended получен ${payload}`);
       webRTCManager.closeConnection();
     });
     newSocket.on("message:new", async (message: MessageResponse) => {
       try {
         const decodeMessage = await decryptedMessage(message);
-        if (!decodeMessage) return console.log(decodeMessage);
+        if (!decodeMessage) return log("DEBUG: Сообщение не расшифровано или пусто.");
         addMessageToEnd(decodeMessage);
       } catch (error) {
-        console.log(error);
+        log(`ERROR: ${error}`);
       }
     });
     newSocket.on("message:deleted", (message: Message) => {

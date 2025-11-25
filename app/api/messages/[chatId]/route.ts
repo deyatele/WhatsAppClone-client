@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { log } from "../../../lib/log";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chatId: string } },
+  { params }: { params: Promise<{ chatId: string }> },
 ) {
   const { chatId } = await params;
 
@@ -35,7 +36,7 @@ export async function GET(
             );
         }
       } catch (e) {
-        console.log(e);
+        log(`ERROR: ${e}`);
         return NextResponse.redirect(
           new URL(
             `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
@@ -94,7 +95,7 @@ export async function GET(
 
     return responseData;
   } catch (error) {
-    console.error("Failed to fetch messages:", error);
+    log(`ERROR: Failed to fetch messages: ${error}`);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

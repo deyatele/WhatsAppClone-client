@@ -4,10 +4,10 @@ import { useChatStore } from "./store";
 export const log = (...args: [string | number | null | object]) => {
   const first = args[0];
   if (typeof first === "string") {
-    if (process.env.NEXT_PUBLIC_DEBUGING && first.includes("Debug")) {
+    if (process.env.NEXT_PUBLIC_DEBUGING && first.includes("DEBUG")) {
       console.log(String(args));
       useChatStore.getState().addLog({ id: uuidv4(), message: String(args) });
     }
-    if (first.includes("Error")) console.log(String(args));
+    if (first.includes("ERROR")) console.error(String(args));
   }
 };

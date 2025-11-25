@@ -16,6 +16,7 @@ import {
   decryptMessageForOne,
   encryptMessageForTwo,
 } from "../crypto/messageEncryptor";
+import { log } from "../log";
 import { useChatStore } from "../store";
 
 const useIsomorphicLayoutEffect =
@@ -58,13 +59,12 @@ export const useChat = () => {
       userId: string,
       password: string,
     ) => {
-      let privateKey:CryptoKey
-      try{
+      let privateKey: CryptoKey;
+      try {
         privateKey = await getPrivateKey(password, userId);
-
-      } catch (e){
-        console.error(e)
-        return []
+      } catch (e) {
+        log(`ERROR: ${e}`);
+        return [];
       }
       const messages: Message[] = [];
       for (const message of newMessages) {
@@ -138,7 +138,7 @@ export const useChat = () => {
           hasMore: nextCursor !== null,
         });
       } catch (error) {
-        console.error("Не удалось загрузить сообщения:", error);
+        log(`ERROR: Не удалось загрузить сообщения: ${error}`);
       } finally {
         isLoadingRef.current = false;
         setPaginationState(activeChatId, { isLoading: false });
@@ -280,7 +280,7 @@ export const useChat = () => {
         socket.emit("message:send", { chatId: activeChatId, text: enMes });
         setNewMessage("");
       })
-      .catch((e) => console.log(e));
+      .catch((e) => log(`ERROR: ${e}`));
   };
 
   const handleDeleteMessage = (
@@ -304,9 +304,8 @@ export const useChat = () => {
       const inviteLink = `${window.location.origin}?invite=${id}`;
       return inviteLink;
     } catch (error) {
-      console.error(
-        "Не удалось сгенерировать ссылку-приглашение для чата:",
-        error,
+      log(
+        `ERROR: Не удалось сгенерировать ссылку-приглашение для чата: ${error}`,
       );
       return null;
     }
@@ -316,7 +315,7 @@ export const useChat = () => {
       const { userId } = await chatApi.getUserInviteChat(inviteToken);
       return userId;
     } catch (error) {
-      console.error(error);
+      log(`ERROR: ${error}`);
     }
   }, []);
 

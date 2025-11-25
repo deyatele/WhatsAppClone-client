@@ -1,5 +1,6 @@
 import type { LoginResult } from "../../types";
 import type { LoginDto } from "../api";
+import { log } from "../log";
 import { loginAction } from "../serverActions";
 import {
   findRecordIdByPublicJwk,
@@ -39,7 +40,7 @@ export async function loginWithKeyVerification(dto: LoginDto) {
     try {
       loginResult = await loginAction(dto);
     } catch (e) {
-      console.error("[loginWithKeyVerification] loginAction threw:", e);
+      log(`ERROR: [loginWithKeyVerification] loginAction threw: ${e}`);
       return {
         success: false,
         error: e instanceof Error ? e.message : String(e),
@@ -71,24 +72,23 @@ export async function loginWithKeyVerification(dto: LoginDto) {
           );
           localId = id;
         } catch (error) {
-          console.log(error);
+          log(`ERROR: ${error}`);
         }
       }
 
       if (!localId) {
         const keyPairRec = await generateAndStoreKeyPair(dto.password);
-         await putRecord({ id: user.id, ...keyPairRec });
-        
+        await putRecord({ id: user.id, ...keyPairRec });
+
         const updResult = await updateMyKeysClient(
           keyPairRec,
           loginResult.accessToken,
           user.id,
         );
 
-
         if (updResult && typeof updResult === "object" && !updResult.success) {
           await removeKey(user.id).catch((e) => {
-            console.log(e);
+            log(`ERROR: ${e}`);
           });
           return {
             success: false,
@@ -100,14 +100,14 @@ export async function loginWithKeyVerification(dto: LoginDto) {
 
       return { success: true };
     } catch (err) {
-      console.error("Ошибка проверки ключей:", err);
+      log(`ERROR: Ошибка проверки ключей: ${err}`);
       return {
         success: false,
         error: err instanceof Error ? err.message : "Ошибка проверки ключей",
       };
     }
   } catch (error) {
-    console.error("Login Failed:", error);
+    log(`ERROR: Ошибка входа: ${error}`);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Ошибка входа",

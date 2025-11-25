@@ -85,7 +85,6 @@ export default function RegisterPage() {
       } else throw new Error("Данные с сервера не коректны. Нет userId");
 
       return { success: true };
-      
     } catch (e) {
       console.error("Ошибка регистрации", e);
       return {
