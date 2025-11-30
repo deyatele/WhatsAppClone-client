@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatStore } from "../lib/store";
+import { useChatStore } from "../../lib/store";
 
 export const LogPanel = () => {
   const logs = useChatStore((state) => state.logs);

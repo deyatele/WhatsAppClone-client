@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { log } from "../lib/log";
+import { log } from "../../lib/log";
 
 interface VideoPlayerProps {
   stream: MediaStream | null;

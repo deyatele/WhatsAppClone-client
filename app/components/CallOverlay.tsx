@@ -1,7 +1,7 @@
 import { type FC, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useChatStore } from "../lib/store";
 import { webRTCManager } from "../lib/WebRTCManager";
-import { VideoPlayer } from "./VideoPlayer";
+import { VideoPlayer } from "./ui/VideoPlayer";
 
 interface CallOverlayProps {
   participantName?: string;

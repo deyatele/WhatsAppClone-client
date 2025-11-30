@@ -2,11 +2,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Socket } from "socket.io-client";
 import { io } from "socket.io-client";
-import { useChat } from "../lib/hooks/useChat";
-import { log } from "../lib/log";
-import { useChatStore } from "../lib/store";
-import { webRTCManager } from "../lib/WebRTCManager";
-import type { Message, MessageResponse } from "../types";
+import { useChat } from "../../lib/hooks/useChat";
+import { log } from "../../lib/log";
+import { useChatStore } from "../../lib/store";
+import { webRTCManager } from "../../lib/WebRTCManager";
+import type { Chat, Message, MessageResponse } from "../../types";
+import { useToast } from "./ToastProvider";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -21,8 +22,15 @@ interface SocketProviderProps {
 }
 export const SocketProvider = ({ children, token }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const { setUserId, addMessageToEnd, removeMessage, password, userId } =
-    useChatStore();
+  const { addToast } = useToast();
+  const {
+    setUserId,
+    addMessageToEnd,
+    removeMessage,
+    password,
+    userId,
+    setChat,
+  } = useChatStore();
   const { decryptedMessage } = useChat();
   useEffect(() => {
     if (!token || !userId || !password) return;
@@ -52,7 +60,8 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     newSocket.on("message:new", async (message: MessageResponse) => {
       try {
         const decodeMessage = await decryptedMessage(message);
-        if (!decodeMessage) return log("DEBUG: Сообщение не расшифровано или пусто.");
+        if (!decodeMessage)
+          return log("DEBUG: Сообщение не расшифровано или пусто.");
         addMessageToEnd(decodeMessage);
       } catch (error) {
         log(`ERROR: ${error}`);
@@ -61,6 +70,12 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     newSocket.on("message:deleted", (message: Message) => {
       removeMessage(message);
     });
+    newSocket.on("chat:created", ({ chat }: { chat: Chat }) => {
+      const user = chat.participants.find((p) => p.user.id !== userId)?.user;
+      addToast(`Присоединился новый пользователь ${user?.name ?? "!"}`);
+      setChat({ ...chat, messages: [] });
+    });
+
     setSocket(newSocket);
     return () => {
       newSocket.disconnect();
@@ -72,6 +87,8 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     addMessageToEnd,
     removeMessage,
     decryptedMessage,
+    setChat,
+    addToast,
     password,
     userId,
   ]);

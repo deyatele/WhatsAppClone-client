@@ -3,6 +3,7 @@ import {
   type AuthResponse,
   authResponseSchema,
   type ChatResponse,
+  chatShemaResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -130,19 +131,24 @@ const paginatedMessagesSchema = z.object({
 });
 
 export const chatApi = {
-  async createChat(ovnerUserId: string): Promise<{ chatId: string }> {
+  async createChat(
+    ovnerUserId: string | null,
+    inviteToken: string | null,
+  ): Promise<ChatResponse | null> {
     const fetchOptions: RequestInit & { agent?: object } = {
       headers: {
         "Content-Type": "application/json",
       },
       method: "POST",
-      body: JSON.stringify({ ovnerUserId }),
+      body: JSON.stringify({ ovnerUserId, inviteToken }),
     };
 
     const response = await fetch(`${BASE_URL}/api/chats/create`, fetchOptions);
-    const jsonData = await response.json();
 
-    return z.object({ chatId: z.string() }).parse({ chatId: jsonData.id });
+    if (!ovnerUserId) return null;
+
+    const jsonData = await response.json();
+    return chatShemaResponse.parse(jsonData);
   },
 
   async getInviteToken(): Promise<{ id: string }> {

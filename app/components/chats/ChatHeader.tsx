@@ -1,9 +1,10 @@
 "use client";
 
-import { formaterDate } from "../lib/utils";
-import { webRTCManager } from "../lib/WebRTCManager";
-import type { ChatParticipant, Message } from "../types";
-import { Dropdown } from "./ui/Dropdown";
+import { useDateFormatter } from "../../lib/hooks/useDateFormatter";
+import { useChatStore } from "../../lib/store";
+import { webRTCManager } from "../../lib/WebRTCManager";
+import type { ChatParticipant, Message } from "../../types";
+import { Dropdown } from "../ui/Dropdown";
 
 interface ChatHeaderProps {
   otherUser: ChatParticipant | undefined;
@@ -11,6 +12,8 @@ interface ChatHeaderProps {
 }
 
 export const ChatHeader = ({ otherUser, lastMessage }: ChatHeaderProps) => {
+  const toggleChatList = useChatStore((state) => state.toggleChatList);
+  const { format } = useDateFormatter();
   const handleInitiateCall = async () => {
     if (!otherUser?.id) return;
     await webRTCManager.initiateCall(otherUser.id);
@@ -18,11 +21,31 @@ export const ChatHeader = ({ otherUser, lastMessage }: ChatHeaderProps) => {
 
   return (
     <div className="p-3 border-b border-gray-700 bg-gray-800 flex items-center">
-      <div>
+      <button
+        className="p-2 rounded-full hover:bg-gray-700 hover:text-white md:hidden"
+        onClick={toggleChatList}
+        title="Открыть список чатов"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+          />
+        </svg>
+      </button>
+      <div className="flex flex-col">
         <h2 className="text-xl font-bold">{otherUser?.name || "Чат"}</h2>
         {lastMessage && (
           <p className="text-xs text-gray-400">
-            был(-а) в {formaterDate(lastMessage.createdAt)}
+            был(-а) в {format(lastMessage.createdAt)}
           </p>
         )}
       </div>
@@ -108,7 +131,7 @@ export const ChatHeader = ({ otherUser, lastMessage }: ChatHeaderProps) => {
           </li>
         </Dropdown>
         <button
-          className="p-2 rounded-full hover:bg-gray-700 hover:text-white"
+          className="p-2 rounded-full hover:bg-gray-700 hover:text-white hidden md:block"
           title="Поиск по чату"
         >
           <svg
@@ -126,25 +149,54 @@ export const ChatHeader = ({ otherUser, lastMessage }: ChatHeaderProps) => {
             />
           </svg>
         </button>
-        <button
-          className="p-2 rounded-full hover:bg-gray-700 hover:text-white"
-          title="Другие опции"
+        <Dropdown
+          align="right"
+          trigger={
+            <button
+              className="p-2 rounded-full hover:bg-gray-700 hover:text-white"
+              title="Другие опции"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="w-6 h-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
+                />
+              </svg>
+            </button>
+          }
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
-            />
-          </svg>
-        </button>
+          <li className="md:hidden">
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600 flex items-center"
+              title="Поиск по чату"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="w-5 h-5 mr-3"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                />
+              </svg>
+              Поиск
+            </button>
+          </li>
+          {/* Другие пункты меню можно добавить здесь */}
+        </Dropdown>
       </div>
     </div>
   );

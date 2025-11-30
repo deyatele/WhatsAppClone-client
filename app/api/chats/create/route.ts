@@ -24,11 +24,13 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${token}`,
       },
       // Передаем полученное тело на удаленный бэкенд
-      body: JSON.stringify({ userId: body.ovnerUserId }),
+      body: JSON.stringify({
+        userId: body.ovnerUserId,
+        inviteToken: body.inviteToken,
+      }),
     });
-
+    if (!body.ovnerUserId) return NextResponse.json(null);
     const data = await backendResponse.json();
-
     if (!backendResponse.ok) {
       return NextResponse.json(data, { status: backendResponse.status });
     }

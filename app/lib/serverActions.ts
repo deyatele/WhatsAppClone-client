@@ -174,3 +174,10 @@ export async function updateMyKeys(
     };
   }
 }
+
+import { getChatsAndToken } from "./getChats";
+
+export async function getChatsAction() {
+  const { chats, userId } = await getChatsAndToken();
+  return { chats, userId };
+}

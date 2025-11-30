@@ -6,7 +6,10 @@ interface ChatState {
   messages: Record<string, Message[]>;
   pagination: Record<string, PaginationState>;
   chats: Chat[];
+  connectedChatIds: Set<string>;
   callState: string;
+  isLoadingChats: boolean;
+  isLoadingMessages: boolean;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   incomingCall: { from: string; sdp: RTCSessionDescriptionInit } | null;
@@ -15,14 +18,21 @@ interface ChatState {
   logs: { message: string; id: string }[] | null;
   pubKeyUser: JsonWebKey | null;
   password: string | null;
+  isChatListOpen: boolean;
+  initialChatsLoaded: boolean;
+  pendingChats: Chat[] | null;
 
   // Действия
+  toggleChatList: () => void;
   setActiveChatId: (id: string | null) => void;
   setInitialMessages: (chatId: string, messages: Message[]) => void;
   addMessagesToStart: (chatId: string, messages: Message[]) => void;
   addMessageToEnd: (message: Message) => void;
   removeMessage: (message: Message) => void;
   setChats: (chats: Chat[]) => void;
+  setChat: (chat: Chat) => void;
+  setIsLoadingChats: (isLoading: boolean) => void;
+  setIsLoadingMessages: (isLoading: boolean) => void;
   setPaginationState: (chatId: string, state: Partial<PaginationState>) => void;
   setCallState: (callState: string) => void;
   setLocalStream: (stream: MediaStream | null) => void;
@@ -35,6 +45,11 @@ interface ChatState {
   addLog: (log: { message: string; id: string }) => void;
   setPubKeyUser: (key: JsonWebKey | null) => void;
   setPassword: (password: string) => void;
+  addConnectedChatId: (chatId: string) => void;
+  removeConnectedChatId: (chatId: string) => void;
+  setInitialChatsLoaded: (loaded: boolean) => void;
+  setPendingChats: (chats: Chat[] | null) => void;
+  updateChatsWithPending: () => void;
 }
 // Вспомогательные функции для работы с сообщениями
 const messageUtils = {
@@ -66,13 +81,15 @@ const messageUtils = {
     return chat;
   },
 };
-
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, _get) => ({
   activeChatId: null,
   messages: {},
   pagination: {},
   chats: [],
+  connectedChatIds: new Set(),
   callState: "idle",
+  isLoadingChats: false,
+  isLoadingMessages: false,
   localStream: null,
   remoteStream: null,
   incomingCall: null,
@@ -81,6 +98,12 @@ export const useChatStore = create<ChatState>((set) => ({
   logs: null,
   pubKeyUser: null,
   password: null,
+  isChatListOpen: true,
+  initialChatsLoaded: false,
+  pendingChats: null,
+
+  toggleChatList: () =>
+    set((state) => ({ isChatListOpen: !state.isChatListOpen })),
 
   setPassword: (password) => set({ password }),
 
@@ -117,7 +140,7 @@ export const useChatStore = create<ChatState>((set) => ({
       // Обновление чата
       const updatedChats = state.chats.map((chat) =>
         chat.id === chatId
-          ? { ...chat, messages: [message, ...(chat.messages || [])] }
+          ? { ...chat, messages: [...(chat.messages || []), message] }
           : chat,
       );
 
@@ -163,6 +186,29 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   setChats: (chats) => set({ chats }),
+  setIsLoadingChats: (isLoading) => set({ isLoadingChats: isLoading }),
+  setIsLoadingMessages: (isLoading) => set({ isLoadingMessages: isLoading }),
+  addConnectedChatId: (chatId: string) =>
+    set((state) => {
+      const newSet = new Set(state.connectedChatIds);
+      newSet.add(chatId);
+      return { connectedChatIds: newSet };
+    }),
+  removeConnectedChatId: (chatId: string) =>
+    set((state) => {
+      const newSet = new Set(state.connectedChatIds);
+      newSet.delete(chatId);
+      return { connectedChatIds: newSet };
+    }),
+
+  setChat: (chat) =>
+    set((state) => {
+      const updatedChats = [
+        { ...chat },
+        ...state.chats.filter((c) => c.id !== chat.id),
+      ];
+      return { chats: updatedChats };
+    }),
 
   setPaginationState: (chatId, newPaginationState) =>
     set((state) => {
@@ -189,8 +235,25 @@ export const useChatStore = create<ChatState>((set) => ({
   setPeerConnection: (pc) => set({ peerConnection: pc }),
   setUserId: (id) => set({ userId: id }),
 
-  addLog: (log) =>
+  addLog: (log) => {
     set((state) => ({
       logs: log ? [log, ...(state.logs || [])] : null,
-    })),
+    }));
+  },
+
+  setInitialChatsLoaded: (loaded) => set({ initialChatsLoaded: loaded }),
+
+  setPendingChats: (chats) => set({ pendingChats: chats }),
+
+  updateChatsWithPending: () =>
+    set((state) => {
+      if (state.pendingChats) {
+        return {
+          chats: state.pendingChats,
+          pendingChats: null,
+          initialChatsLoaded: true,
+        };
+      }
+      return state;
+    }),
 }));

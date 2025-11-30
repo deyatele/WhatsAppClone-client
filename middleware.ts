@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  getTokenFromRequest,
+  refreshAccessToken,
+  setAuthTokens,
+} from "./app/lib/helpers/tokenHelper";
 import { getUserIdFromToken } from "./app/lib/JWTVeriify";
-import { log } from "./app/lib/log";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -8,15 +12,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") || pathname.startsWith("/register");
   const isJoinChatRoute = pathname.startsWith("/join");
 
-  let accessToken: string | null | undefined =
-    request.cookies.get("accessToken")?.value;
+  let accessToken: string | null =
+    getTokenFromRequest(request, "accessToken") || null;
+  const refreshToken = getTokenFromRequest(request, "refreshToken");
   const inviteToken = request.nextUrl.searchParams.get("invite");
   const idUser = await getUserIdFromToken(accessToken);
   if (!idUser) {
     accessToken = null;
   }
 
- 
   // Обработка пригласительной ссылки
   if (isJoinChatRoute && inviteToken) {
     if (!accessToken) {
@@ -35,38 +39,28 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  const refreshToken = request.cookies.get("refreshToken")?.value;
   if (!accessToken) {
     if (refreshToken) {
-      try {
-        const refreshUrl = new URL("/api/auth/refresh", request.url);
-        const response = await fetch(refreshUrl, {
-          method: "POST",
-          headers: {
-            Cookie: `refreshToken=${refreshToken}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          accessToken = data?.accessToken || null;
-          if (!accessToken)
-            return NextResponse.redirect(
-              new URL(
-                `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-                request.url,
-              ),
-            );
+      const refreshResult = await refreshAccessToken(request);
+      if (refreshResult instanceof NextResponse) {
+        // Если refreshAccessToken вернул NextResponse (редирект), возвращаем его
+        return refreshResult;
+      }
+      accessToken = refreshResult;
+
+      if (!accessToken) {
+        if (!isAuthPage) {
+          return NextResponse.redirect(
+            new URL(
+              `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+              request.url,
+            ),
+          );
         }
-      } catch (e) {
-        log(`ERROR: ${e}`);
-        return NextResponse.redirect(
-          new URL(
-            `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-            request.url,
-          ),
-        );
+        return NextResponse.next();
       }
     } else {
+      // Если нет ни access, ни refresh токена
       if (!isAuthPage) {
         return NextResponse.redirect(
           new URL(
@@ -78,7 +72,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
   }
-  
 
   if (accessToken) {
     if (isAuthPage) {
@@ -113,15 +106,11 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next();
 
     if (!request.cookies.has("accessToken") || !idUser) {
-      const ACCESS_TOKEN_LIFETIME_SEC =
-        Number(process.env.ACCESS_TOKEN_LIFETIME_SEC) || 900;
-      response.cookies.set("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: ACCESS_TOKEN_LIFETIME_SEC,
-        path: "/",
-      });
+      // Получаем refresh токен для установки обоих токенов
+      const refreshToken = getTokenFromRequest(request, "refreshToken");
+      if (refreshToken) {
+        setAuthTokens(response, accessToken, refreshToken);
+      }
     }
 
     return response;

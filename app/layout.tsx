@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import AppWrapper from "./components/AppWrapper";
-import { SocketProvider } from "./components/SocketProvider";
-import { UserProvider } from "./components/UserProvider";
+import { SocketProvider } from "./components/providers/SocketProvider";
+import { ToastProvider } from "./components/providers/ToastProvider";
+import { UserProvider } from "./components/providers/UserProvider";
 import "./globals.css";
 import { getUserIdFromToken } from "./lib/JWTVeriify";
 
@@ -21,11 +22,13 @@ export default async function RootLayout({
   return (
     <html lang="ru">
       <body>
-        <UserProvider userId={userId}>
-          <SocketProvider token={accessToken}>
-            <AppWrapper>{children}</AppWrapper>
-          </SocketProvider>
-        </UserProvider>
+        <ToastProvider>
+          <UserProvider userId={userId}>
+            <SocketProvider token={accessToken}>
+              <AppWrapper>{children}</AppWrapper>
+            </SocketProvider>
+          </UserProvider>
+        </ToastProvider>
       </body>
     </html>
   );

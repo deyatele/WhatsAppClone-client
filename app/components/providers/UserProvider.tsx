@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect } from "react";
 
-import { useChatStore } from "../lib/store";
+import { useChatStore } from "../../lib/store";
 
 interface UserContextType {
   userId: string | null;

@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
       },
     });
     const res = await result.json();
-   
 
     return NextResponse.json(res);
   } catch (e) {

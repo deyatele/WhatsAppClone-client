@@ -19,7 +19,7 @@ export async function getChatsAndToken(): Promise<{
 
   try {
     const chats = await chatApi.getMyChats(token);
-    return { chats, token };
+    return { chats, userId };
   } catch (error) {
     console.error("Failed to fetch chats:", error);
     if (error instanceof ZodError) {

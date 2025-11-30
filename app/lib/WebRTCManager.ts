@@ -100,11 +100,11 @@ class WebRTCManager {
       videoInputs.find((d) => /back|rear|environment/i.test(d.label)) ||
       videoInputs[1] ||
       videoInputs[0];
-    log(
+    /* log(
       `DEBUG:Найдены видеоустройства: 
         front: ${JSON.stringify(this.frontCamera)},
         back: ${JSON.stringify(this.backCamera)}`,
-    );
+    ); */
   }
 
   public async switchCamera() {
@@ -234,7 +234,7 @@ class WebRTCManager {
         throw new Error("Не удалось получить учетные данные TURN");
       }
       const turnConfig = await response.json();
-      log(`DEBUG:✅ Получена конфигурация TURN" ${JSON.stringify(turnConfig)}`);
+      // log(`DEBUG:✅ Получена конфигурация TURN" ${JSON.stringify(turnConfig)}`);
       return {
         iceServers: [
           // { urls: 'stun:stun.l.google.com:19302' },

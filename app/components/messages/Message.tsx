@@ -1,17 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import {
   getMessageStatus,
   getStatusColor,
   type MessageStatus,
-} from "../lib/crypto/messageStatus";
-import { formaterDate } from "../lib/utils";
-import type { Message as MessageType } from "../types";
-import { DeleteModal } from "./modal/deleteModal";
-import { useModal } from "./modal/ModalContext";
+} from "../../lib/crypto/messageStatus";
+import { useDateFormatter } from "../../lib/hooks/useDateFormatter";
+import type { Message as MessageType } from "../../types";
+import { DeleteModal } from "../modal/deleteModal";
+import { useModal } from "../modal/ModalContext";
+import { UserAvatar } from "../ui/UserAvatar";
 
 interface MessageProps {
   message: MessageType;
@@ -26,6 +26,7 @@ export const Message = ({
 }: MessageProps) => {
   const { openModal, closeModal } = useModal();
   const [status, setStatus] = useState("pending");
+  const { format } = useDateFormatter();
 
   useEffect(() => {
     const s = getMessageStatus(message.id);
@@ -56,18 +57,8 @@ export const Message = ({
         className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
       >
         {!isCurrentUser && (
-          <div className="size-8 overflow-hidden flex justify-center items-center rounded-full mr-1 bg-gray-700">
-            {message?.sender?.avatar ? (
-              <Image
-                src={message.sender.avatar}
-                alt={message?.sender?.name ?? "Avatar"}
-                width={32}
-                height={32}
-                className="object-cover"
-              />
-            ) : (
-              <span>{message?.sender?.name?.at(0)?.toUpperCase() ?? "U"}</span>
-            )}
+          <div className="mr-1">
+            <UserAvatar user={message.sender} size="sm" />
           </div>
         )}
         <div
@@ -114,7 +105,7 @@ export const Message = ({
             )}
             <p className="break-words">{message.message}</p>
             <p className="text-xs text-right text-gray-400 inline-block relative -bottom-3 -right-3">
-              {formaterDate(message.createdAt)}
+              {format(message.createdAt)}
             </p>
           </div>
         </div>

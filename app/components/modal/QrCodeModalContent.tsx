@@ -17,20 +17,20 @@ export const QrCodeModalContent = ({ inviteLink }: QrCodeModalContentProps) => {
   };
 
   return (
-    <div className="p-4 flex flex-col items-center justify-center space-y-4">
+    <div className=" flex flex-col items-center justify-center space-y-4">
       <h2 className="text-xl font-bold text-white">Приглашение в чат</h2>
       <div className="p-2 bg-white rounded-lg">
-        <QRCodeSVG value={inviteLink} size={256} level="H" />
+        <QRCodeSVG value={inviteLink} size={200} level="H" />
       </div>
       <p className="text-sm text-gray-300 text-center">
         Отсканируйте QR-код или скопируйте ссылку:
       </p>
-      <div className="flex items-center space-x-2 w-full">
+      <div className="flex flex-col items-center gap-3 w-full sm:flex-row">
         <input
           type="text"
           readOnly
           value={inviteLink}
-          className="flex-grow p-2 text-sm bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none"
+          className="flex-grow w-full sm:min-w-0 p-2 text-sm bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none"
         />
         <button
           onClick={handleCopy}
