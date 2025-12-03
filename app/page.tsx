@@ -16,14 +16,13 @@ export default function Home() {
   const isChatListOpen = useChatStore((state) => state.isChatListOpen);
   const setPassword = useChatStore((state) => state.setPassword);
   const password = useChatStore((state) => state.password);
-  const { setUserId } = useChatStore();
+  const setUserId = useChatStore((state) => state.setUserId);
   const searchParams = useSearchParams();
   const invite = searchParams.get("invite");
   const [error, setError] = useState<string | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const handlePasswordSubmit = useCallback(
     async (newPassword: string) => {
       if (!newPassword.trim()) {
@@ -64,36 +63,23 @@ export default function Home() {
   }, [isMounted, password]);
 
   useEffect(() => {
-    if (!password) return;
-
-    let isMounted = true;
+    if (!password || !isMounted) return;
 
     const fetchData = async () => {
       useChatStore.getState().setIsLoadingChats(true);
       try {
         const { chats, userId } = await getChatsAction();
-        if (isMounted) {
-          setChats(chats);
-          userId && setUserId(userId);
-        }
+        setChats(chats);
+        userId && setUserId(userId);
       } finally {
-        if (isMounted) {
-          useChatStore.getState().setIsLoadingChats(false);
-        }
+        useChatStore.getState().setIsLoadingChats(false);
       }
     };
-
     fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [password, setUserId]);
-
+  }, [password, isMounted, setUserId]);
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
   return (
     <main className="flex h-screen overflow-hidden w-full">
       <StoreInitializer chats={chats} />

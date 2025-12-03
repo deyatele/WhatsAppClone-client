@@ -136,7 +136,6 @@ export const useChatStore = create<ChatState>((set, _get) => ({
       if (chatMessages.some((m) => m.id === message.id)) {
         return state;
       }
-
       // Обновление чата
       const updatedChats = state.chats.map((chat) =>
         chat.id === chatId

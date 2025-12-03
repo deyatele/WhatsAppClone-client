@@ -3,12 +3,11 @@
 import { useRouter } from "next/navigation";
 
 // React imports
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 // Internal modules
 import { logoutAction } from "../../lib/serverActions";
 import { useChatStore } from "../../lib/store";
 // Types
-import type { Chat } from "../../types";
 import { useUser } from "../providers/UserProvider";
 import { LogPanel } from "../ui/LogPanel";
 import { ChatItem } from "./ChatItem";
@@ -18,23 +17,19 @@ import { ChatListLoadingState } from "./ChatListLoadingState";
 
 const isDebug = process.env.NODE_ENV === "development";
 
-export const ChatList = () => {
-  const {
-    chats,
-    pendingChats,
-    initialChatsLoaded,
-    setActiveChatId,
-    activeChatId,
-    toggleChatList,
-    isChatListOpen,
-    isLoadingChats,
-  } = useChatStore();
+const ChatListComponent = () => {
+  const chats = useChatStore((state) => state.chats);
+  const pendingChats = useChatStore((state) => state.pendingChats);
+  const initialChatsLoaded = useChatStore((state) => state.initialChatsLoaded);
+  const activeChatId = useChatStore((state) => state.activeChatId);
+  const isLoadingChats = useChatStore((state) => state.isLoadingChats);
+  const setActiveChatId = useChatStore((state) => state.setActiveChatId);
+  const toggleChatList = useChatStore((state) => state.toggleChatList);
   const { userId } = useUser();
   const router = useRouter();
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [_disabled] = useState(true); // Заглушка для неактивных функций
 
   const handleLogout = useCallback(async () => {
     setLoading(true);
@@ -46,39 +41,21 @@ export const ChatList = () => {
     }
   }, [router]);
 
-  const _getOtherParticipant = useCallback(
-    (chat: Chat) => {
-      if (!userId || !chat.participants) return null;
-      return chat.participants.find((p) => p.user.id !== userId)?.user;
-    },
-    [userId],
-  );
-
   const handleChatClick = useCallback(
     (chatId: string) => {
       setActiveChatId(chatId);
-      if (isChatListOpen && window.innerWidth < 768) {
+      if (useChatStore.getState().isChatListOpen && window.innerWidth < 768) {
         toggleChatList();
       }
     },
-    [setActiveChatId, isChatListOpen, toggleChatList],
+    [setActiveChatId, toggleChatList],
   );
 
-  // Определяем, какие чаты показывать
-  const chatsToDisplay = useMemo(
-    () => (pendingChats && initialChatsLoaded ? pendingChats : chats),
-    [pendingChats, initialChatsLoaded, chats],
-  );
-
-  const showLoading = useMemo(
-    () => !initialChatsLoaded && isLoadingChats,
-    [initialChatsLoaded, isLoadingChats],
-  );
-
-  const showEmptyState = useMemo(
-    () => !isLoadingChats && !initialChatsLoaded && chatsToDisplay.length === 0,
-    [isLoadingChats, initialChatsLoaded, chatsToDisplay.length],
-  );
+  const chatsToDisplay =
+    pendingChats && initialChatsLoaded ? pendingChats : chats;
+  const showLoading = !initialChatsLoaded && isLoadingChats;
+  const showEmptyState =
+    !isLoadingChats && !initialChatsLoaded && chatsToDisplay.length === 0;
 
   return (
     <div className="relative h-full">
@@ -107,7 +84,6 @@ export const ChatList = () => {
               />
             ))
           )}
-          {/* Индикатор обновления при pending данных */}
           {pendingChats && initialChatsLoaded && (
             <div className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-70 flex items-center justify-center h-10">
               <p className="text-gray-40 text-sm">Обновление чатов...</p>
@@ -123,3 +99,6 @@ export const ChatList = () => {
     </div>
   );
 };
+
+const MemoizedChatList = memo(ChatListComponent);
+export { MemoizedChatList as ChatList };

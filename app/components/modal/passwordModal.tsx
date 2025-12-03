@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader } from "../ui/Loader";
+import { Loader, LoaderSize } from "../ui/Loader";
 
 interface PasswordModaleProps {
   handleAction: (value: string) => void;
@@ -51,7 +51,7 @@ export default function PasswordModale({
               disabled={loading}
             >
               {loading ? (
-                <Loader size={8} />
+                <Loader size={LoaderSize.xl} />
               ) : (
                 <span className="p-1 flex justify-center items-center">
                   Отправить

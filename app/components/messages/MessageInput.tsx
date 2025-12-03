@@ -14,7 +14,7 @@ export const MessageInput = ({
   return (
     <form onSubmit={handleSendMessage} className="p-4 bg-gray-800">
       <input
-        type="text"
+        type="textarea"
         placeholder="Введите сообщение..."
         className="w-full p-2 text-white bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
         value={newMessage}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useChat } from "../lib/hooks/useChat";
 import { useChatStore } from "../lib/store";
 import type { Chat, ChatResponse } from "../types";
@@ -14,11 +14,10 @@ function StoreInitializer({ chats }: { chats: ChatResponse[] }) {
     updateChatsWithPending,
     initialChatsLoaded,
   } = useChatStore();
-  const _initialized = useRef(false);
   const { decryptedMessages } = useChat();
 
   useEffect(() => {
-    if (!password || !userId) return;
+    if (!password || !userId || initialChatsLoaded) return;
 
     // Обрабатываем только новые данные, если нет текущих pending данных
     if (chats.length && !pendingChats) {
@@ -39,30 +38,29 @@ function StoreInitializer({ chats }: { chats: ChatResponse[] }) {
       )
         .then((chatsWithDecryptedMessages) => {
           setPendingChats(chatsWithDecryptedMessages as Chat[]);
-          // Немедленно применяем, если это первая загрузка
-          if (!initialChatsLoaded) {
-            updateChatsWithPending();
-          }
         })
         .catch((error) => console.error("Ошибка при обработке:", error));
     }
   }, [
     chats,
     password,
-    decryptedMessages,
     userId,
+    initialChatsLoaded,
     pendingChats,
     setPendingChats,
-    updateChatsWithPending,
-    initialChatsLoaded,
+    decryptedMessages,
   ]);
 
   // Автоматически применяем pending данные, если они есть и не происходит загрузка
   useEffect(() => {
-    if (pendingChats && !useChatStore.getState().isLoadingChats) {
+    if (
+      pendingChats &&
+      !useChatStore.getState().isLoadingChats &&
+      !initialChatsLoaded
+    ) {
       updateChatsWithPending();
     }
-  }, [pendingChats, updateChatsWithPending]);
+  }, [pendingChats, initialChatsLoaded, updateChatsWithPending]);
 
   return null;
 }

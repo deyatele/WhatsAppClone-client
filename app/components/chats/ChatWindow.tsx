@@ -15,10 +15,12 @@ export const ChatWindow = () => {
     otherUser,
     activeChatMessages,
     chatContainerRef,
+    loaderRef,
     newMessage,
     setNewMessage,
     handleSendMessage,
     handleDeleteMessage,
+    chatContainer,
   } = useChat();
   const { userId } = useUser();
   const isLoadingMessages = useChatStore((state) => state.isLoadingMessages);
@@ -41,9 +43,11 @@ export const ChatWindow = () => {
         <MessageList
           messages={activeChatMessages}
           chatContainerRef={chatContainerRef}
+          loaderRef={loaderRef}
           activeChatId={activeChatId}
           userId={userId}
           handleDeleteMessage={handleDeleteMessage}
+          chatContainer={chatContainer}
         />
       )}
       <MessageInput

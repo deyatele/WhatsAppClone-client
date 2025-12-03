@@ -54,7 +54,7 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       log(`DEBUG:Мой ID: ${id}`);
     });
     newSocket.on("call:ended", (payload) => {
-      log(`DEBUG:📴 call:ended получен ${payload}`);
+      log(`DEBUG: webinar:ended получен ${payload}`);
       webRTCManager.closeConnection();
     });
     newSocket.on("message:new", async (message: MessageResponse) => {

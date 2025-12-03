@@ -11,3 +11,4 @@ export const withAuth = (
     Authorization: `Bearer ${token}`,
   },
 });
+

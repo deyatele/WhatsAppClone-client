@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSocket } from "../../components/providers/SocketProvider";
 import { useUser } from "../../components/providers/UserProvider";
 import type { Chat, Message, MessageResponse } from "../../types";
@@ -19,43 +13,42 @@ import {
 import { log } from "../log";
 import { useChatStore } from "../store";
 
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
-
 export const useChat = () => {
   const { userId } = useUser();
   const { socket } = useSocket();
-  const store = useChatStore();
+  const activeChatId = useChatStore((s) => s.activeChatId);
+  const chats = useChatStore((s) => s.chats);
+  const messages = useChatStore((s) => s.messages);
+  const pagination = useChatStore((s) => s.pagination);
+  const pubKeyUser = useChatStore((s) => s.pubKeyUser);
+  const password = useChatStore((s) => s.password);
 
-  const {
-    activeChatId,
-    chats,
-    messages,
-    pagination,
-    pubKeyUser,
-    setPubKeyUser,
-    password,
-    addConnectedChatId,
-    removeConnectedChatId,
-  } = store;
+  const setPubKeyUser = useChatStore((s) => s.setPubKeyUser);
+  const addConnectedChatId = useChatStore((s) => s.addConnectedChatId);
+  const removeConnectedChatId = useChatStore((s) => s.removeConnectedChatId);
   const activeChatMessages = messages[activeChatId || ""] || [];
-  const messageCount = activeChatMessages.length;
-
-  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [newMessage, setNewMessage] = useState("");
-  const [isUserAtBottom, setIsUserAtBottom] = useState(true);
-  const [_userScrolled, setUserScrolled] = useState(false);
 
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const loaderRef = useRef<HTMLDivElement | null>(null);
+  const [chatContainer, setChatContainer] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const [loader, setLoader] = useState<HTMLDivElement | null>(null);
+
+  const chatContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setChatContainer(node);
+    }
+  }, []);
+
+  const loaderRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setLoader(node);
+    }
+  }, []);
+
   const isLoadingRef = useRef(false);
-  const scrollStateRef = useRef({
-    oldScrollHeight: 0,
-    shouldAdjustScroll: false,
-  });
-  const _visibleMessageCountRef = useRef(0);
+
   const addMessagesToStart = useChatStore((s) => s.addMessagesToStart);
-  const setInitialMessages = useChatStore((s) => s.setInitialMessages);
   const setPaginationState = useChatStore((s) => s.setPaginationState);
 
   const decryptedMessages = useCallback(
@@ -105,91 +98,73 @@ export const useChat = () => {
     [],
   );
 
-  const loadMessages = useCallback(
-    async (isInitial = false) => {
-      if (!password || !userId || !activeChatId) return;
+  const loadMessages = useCallback(async () => {
+    if (!password || !userId || !activeChatId) return;
 
-      const currentPagination = useChatStore.getState().pagination[
-        activeChatId || ""
-      ] || {
-        hasMore: true,
-        isLoading: false,
+    const currentPagination = useChatStore.getState().pagination[
+      activeChatId || ""
+    ] || {
+      hasMore: true,
+      isLoading: false,
+    };
+
+    // Проверяем, идет ли уже загрузка или больше нет сообщений для загрузки
+    if (
+      currentPagination.isLoading ||
+      isLoadingRef.current ||
+      !currentPagination.hasMore
+    ) {
+      return;
+    }
+
+    // Устанавливаем флаг загрузки через ref и store для предотвращения дублирующих запросов
+    isLoadingRef.current = true;
+    setPaginationState(activeChatId, { isLoading: true });
+
+    try {
+      const paginationWithCursor = currentPagination as {
+        cursor?: string | null;
+        hasMore: boolean;
       };
 
-      // Проверяем, идет ли уже загрузка или больше нет сообщений для загрузки
-      if (
-        currentPagination.isLoading ||
-        isLoadingRef.current ||
-        !currentPagination.hasMore
-      ) {
-        return;
-      }
+      const { messages: newMessages, nextCursor } = await chatApi.getMessages(
+        activeChatId,
+        paginationWithCursor.cursor ?? undefined,
+        15,
+      );
+      const messages: Message[] = await decryptedMessages(
+        newMessages,
+        userId,
+        password,
+      );
 
-      // Устанавливаем флаг загрузки через ref и store для предотвращения дублирующих запросов
-      isLoadingRef.current = true;
-      setPaginationState(activeChatId, { isLoading: true });
+      const sortedMessages = [...messages].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+      addMessagesToStart(activeChatId, sortedMessages);
 
-      try {
-        const paginationWithCursor = currentPagination as {
-          cursor?: string | null;
-          hasMore: boolean;
-        };
-        const cursor = isInitial
-          ? undefined
-          : (paginationWithCursor.cursor ?? undefined);
-        const { messages: newMessages, nextCursor } = await chatApi.getMessages(
-          activeChatId,
-          cursor,
-          15,
-        );
-        const messages: Message[] = await decryptedMessages(
-          newMessages,
-          userId,
-          password,
-        );
-
-        if (isInitial) {
-          const sortedMessages = [...messages].sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          );
-          setInitialMessages(activeChatId, sortedMessages);
-        } else {
-          const sortedMessages = [...messages].sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          );
-          addMessagesToStart(activeChatId, sortedMessages);
-        }
-
-        setPaginationState(activeChatId, {
-          cursor: nextCursor ?? undefined,
-          hasMore: nextCursor !== null,
-        });
-      } catch (error) {
-        log(`ERROR: Не удалось загрузить сообщения: ${error}`);
-      } finally {
-        isLoadingRef.current = false;
-        setPaginationState(activeChatId, { isLoading: false });
-      }
-    },
-    [
-      activeChatId,
-      password,
-      userId,
-      setPaginationState,
-      setInitialMessages,
-      addMessagesToStart,
-      decryptedMessages,
-    ],
-  );
+      setPaginationState(activeChatId, {
+        cursor: nextCursor ?? undefined,
+        hasMore: nextCursor !== null,
+      });
+    } catch (error) {
+      log(`ERROR: Не удалось загрузить сообщения: ${error}`);
+    } finally {
+      isLoadingRef.current = false;
+      setPaginationState(activeChatId, { isLoading: false });
+    }
+  }, [
+    activeChatId,
+    password,
+    userId,
+    setPaginationState,
+    addMessagesToStart,
+    decryptedMessages,
+  ]);
 
   const decryptedMessage = useCallback(
-    async (
-      newMessage: MessageResponse,
-      /*  userId: string,
-    password: string, */
-    ) => {
+    async (newMessage: MessageResponse) => {
       if (!userId || !password) throw new Error("Нет пользователя или пароля");
       const privateKey = await getPrivateKey(password, userId);
       const { encryptedMessage, ...messageOther } = newMessage;
@@ -216,27 +191,7 @@ export const useChat = () => {
   );
 
   useEffect(() => {
-    if (!isInitialLoadComplete) return;
-
-    const handleScroll = () => {
-      const chatContainer = chatContainerRef.current;
-      if (!chatContainer) return;
-
-      // Устанавливаем флаг, что пользователь скроллил
-      setUserScrolled(true);
-
-      // Определяем, находится ли пользователь внизу чата
-      // Учитываем, что контейнер инвертирован (flex-col-reverse),
-      // поэтому "внизу" означает scrollTop близок к 0
-      const threshold = 10; // порог в пикселях
-      const isAtBottom = chatContainer.scrollTop <= threshold;
-      setIsUserAtBottom(isAtBottom);
-    };
-
-    const chatContainer = chatContainerRef.current;
-    if (chatContainer) {
-      chatContainer.addEventListener("scroll", handleScroll);
-    }
+    if (!chatContainer) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -248,130 +203,76 @@ export const useChat = () => {
             hasMore: true,
             isLoading: false,
           };
-
           if (
             currentPagination.hasMore &&
             !currentPagination.isLoading &&
             !isLoadingRef.current
           ) {
-            const chatContainer = chatContainerRef.current;
             if (chatContainer) {
-              // Сохраняем текущую высоту для корректного восстановления позиции
-              scrollStateRef.current = {
-                oldScrollHeight: chatContainer.scrollHeight,
-                shouldAdjustScroll: true,
-              };
               loadMessages();
             }
           }
         }
       },
       {
-        root: chatContainerRef.current,
+        root: chatContainer,
         threshold: 0.1,
       },
     );
 
-    const loaderElement = loaderRef.current;
-    if (loaderElement) {
-      observer.observe(loaderElement);
+    if (loader) {
+      observer.observe(loader);
     }
-
     return () => {
-      if (chatContainer) {
-        chatContainer.removeEventListener("scroll", handleScroll);
-      }
-      if (loaderElement) {
-        observer.unobserve(loaderElement);
+      if (loader) {
+        observer.unobserve(loader);
       }
     };
-  }, [isInitialLoadComplete, loadMessages, activeChatId]);
-
-  const loadInitialMessages = useCallback(() => {
-    if (activeChatId) {
-      // Проверяем, не идет ли уже загрузка для этого чата
-      const currentPagination = useChatStore.getState().pagination[
-        activeChatId
-      ] || {
-        isLoading: false,
-      };
-
-      // Проверяем также isLoadingRef.current для дополнительной защиты от дублирования
-      if (currentPagination.isLoading || isLoadingRef.current) {
-        return; // Если загрузка уже идет, выходим
-      }
-
-      setIsInitialLoadComplete(false);
-      useChatStore.getState().setIsLoadingMessages(true);
-
-      // Добавляем проверку, чтобы избежать повторной загрузки тех же сообщений
-      const existingMessages =
-        useChatStore.getState().messages[activeChatId] || [];
-      if (existingMessages.length > 0) {
-        // Если сообщения уже есть, просто устанавливаем флаг завершения загрузки
-        setIsInitialLoadComplete(true);
-        // Прокручиваем к последним сообщениям
-        setTimeout(() => {
-          const chatContainer = chatContainerRef.current;
-          if (chatContainer) {
-            requestAnimationFrame(() => {
-              chatContainer.scrollTop = 0;
-            });
-          }
-        }, 50);
-        useChatStore.getState().setIsLoadingMessages(false);
-        return;
-      }
-
-      // Даже если сообщения есть в кэше, все равно нужно выполнить загрузку для обновления/расшифровки
-      loadMessages(true)
-        .then(() => {
-          setIsInitialLoadComplete(true);
-          // После загрузки сообщений прокручиваем к последнему сообщению
-          setTimeout(() => {
-            const chatContainer = chatContainerRef.current;
-            if (chatContainer) {
-              // Учитываем, что контейнер инвертирован (flex-col-reverse), поэтому скроллим к 0
-              // Добавляем небольшую задержку для гарантии завершения рендера
-              requestAnimationFrame(() => {
-                chatContainer.scrollTop = 0;
-              });
-            }
-          }, 50); // Уменьшаем таймаут для более быстрого скролла
-        })
-        .finally(() => {
-          useChatStore.getState().setIsLoadingMessages(false);
-        });
-    }
-  }, [activeChatId, loadMessages]);
+  }, [loadMessages, activeChatId, chatContainer, loader]);
 
   useEffect(() => {
-    loadInitialMessages();
-  }, [loadInitialMessages]);
+    if (!activeChatId) return;
+    // Проверяем, не идет ли уже загрузка для этого чата
+    const currentPagination = useChatStore.getState().pagination[
+      activeChatId
+    ] || {
+      isLoading: false,
+    };
 
-  useIsomorphicLayoutEffect(() => {
-    if (messageCount === 0) return;
-
-    const chatContainer = chatContainerRef.current;
-    if (!chatContainer) return;
-
-    const { oldScrollHeight, shouldAdjustScroll } = scrollStateRef.current;
-
-    if (shouldAdjustScroll) {
-      // Восстанавливаем позицию скролла после подгрузки сообщений
-      const newScrollHeight = chatContainer.scrollHeight;
-      chatContainer.scrollTop =
-        newScrollHeight - oldScrollHeight + chatContainer.scrollTop;
-      scrollStateRef.current.shouldAdjustScroll = false;
-    } else {
-      // Автоматический скролл к последнему сообщению если пользователь находится внизу
-      if (isUserAtBottom) {
-        // Если пользователь находится внизу, скроллим к последнему сообщению
-        // Учитываем, что контейнер инвертирован (flex-col-reverse), поэтому скроллим к 0
-        chatContainer.scrollTop = 0;
-      }
+    // Проверяем также isLoadingRef.current для дополнительной защиты от дублирования
+    if (currentPagination.isLoading || isLoadingRef.current) {
+      return; // Если загрузка уже идет, выходим
     }
-  }, [messageCount, isUserAtBottom]);
+
+    useChatStore.getState().setIsLoadingMessages(true);
+
+    // Добавляем проверку, чтобы избежать повторной загрузки тех же сообщений
+    const existingMessages =
+      useChatStore.getState().messages[activeChatId] || [];
+    if (existingMessages.length > 0) {
+      // Прокручиваем к последним сообщениям
+      useChatStore.getState().setIsLoadingMessages(false);
+      return;
+    }
+    // Даже если сообщения есть в кэше, все равно нужно выполнить загрузку для обновления/расшифровки
+    loadMessages().finally(() => {
+      useChatStore.getState().setIsLoadingMessages(false);
+    });
+  }, [activeChatId, loadMessages]);
+
+  const handleNewMessage = useCallback(
+    async (message: MessageResponse) => {
+      try {
+        const decodedMessage = await decryptedMessage(message);
+        if (!decodedMessage) return;
+        // Добавляем сообщение в конец списка
+        useChatStore.getState().addMessageToEnd(decodedMessage);
+      } catch (error) {
+        log(`ERROR: ${error}`);
+      }
+    },
+    [decryptedMessage],
+  );
 
   useEffect(() => {
     if (socket && activeChatId) {
@@ -385,38 +286,6 @@ export const useChat = () => {
       }
 
       // Обработчик нового сообщения
-      const handleNewMessage = async (message: MessageResponse) => {
-        try {
-          const decodedMessage = await decryptedMessage(message);
-          if (!decodedMessage) return;
-
-          // Проверяем, находится ли пользователь внизу чата до добавления сообщения
-          const chatContainer = chatContainerRef.current;
-          let wasAtBottom = false;
-          if (chatContainer) {
-            const threshold = 10;
-            wasAtBottom = chatContainer.scrollTop <= threshold;
-          }
-
-          // Добавляем сообщение в конец списка
-          useChatStore.getState().addMessageToEnd(decodedMessage);
-
-          // Если пользователь был внизу, скроллим к новому сообщению
-          // (только для сообщений от других пользователей)
-          if (
-            wasAtBottom &&
-            chatContainer &&
-            decodedMessage.sender.id !== userId
-          ) {
-            setTimeout(() => {
-              // Учитываем, что контейнер инвертирован (flex-col-reverse), поэтому скроллим к 0
-              chatContainer.scrollTop = 0;
-            }, 0);
-          }
-        } catch (error) {
-          log(`ERROR: ${error}`);
-        }
-      };
 
       socket.on("message:new", handleNewMessage);
 
@@ -438,8 +307,7 @@ export const useChat = () => {
     activeChatId,
     addConnectedChatId,
     removeConnectedChatId,
-    decryptedMessage,
-    userId,
+    handleNewMessage,
   ]);
 
   useEffect(() => {
@@ -451,7 +319,7 @@ export const useChat = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !socket || !activeChatId) return;
+    if (!newMessage.trim() || !socket || !activeChatId || !pubKeyUser) return;
     const pubKeyOther = chats
       .find((chat) => chat.id === activeChatId)
       ?.participants.find((p) => p.user.id !== userId)?.user.publicKeyJwk;
@@ -462,14 +330,9 @@ export const useChat = () => {
         setNewMessage("");
 
         // После отправки сообщения пользователя, всегда скроллим к последнему сообщению
-        setTimeout(() => {
-          const chatContainer = chatContainerRef.current;
-          if (chatContainer) {
-            chatContainer.scrollTop = 0;
-            setIsUserAtBottom(true);
-            setUserScrolled(false); // Сбрасываем флаг, так как пользователь намеренно перешел вниз
-          }
-        }, 0);
+        if (chatContainer) {
+          chatContainer.scrollTop = 0;
+        }
       })
       .catch((e) => log(`ERROR: ${e}`));
   };
@@ -521,9 +384,10 @@ export const useChat = () => {
     otherUser,
     activeChatMessages,
     pagination,
-    chatContainerRef,
-    loaderRef,
     newMessage,
+    chatContainer,
+    loaderRef,
+    chatContainerRef,
     setNewMessage,
     handleSendMessage,
     handleDeleteMessage,
