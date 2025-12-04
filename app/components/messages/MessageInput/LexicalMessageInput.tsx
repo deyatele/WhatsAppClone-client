@@ -14,6 +14,8 @@ import {
   $getSelection,
   $insertNodes,
   $isRangeSelection,
+  KEY_DOWN_COMMAND,
+  type LexicalEditor,
 } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -84,6 +86,60 @@ const EmojiPickerPlugin = ({
   );
 };
 
+const KeyboardSendPlugin = ({
+  onSend,
+  isEmpty,
+}: {
+  onSend: (editor: LexicalEditor) => void;
+  isEmpty: boolean;
+}) => {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (event: KeyboardEvent) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          if (!isEmpty) {
+            onSend(editor);
+          }
+          return true;
+        }
+        return false;
+      },
+      1,
+    );
+  }, [editor, onSend, isEmpty]);
+
+  return null;
+};
+
+const SendButton = ({
+  onClick,
+  isEmpty,
+}: {
+  onClick: (editor: LexicalEditor) => void;
+  isEmpty: boolean;
+}) => {
+  const [editor] = useLexicalComposerContext();
+
+  return (
+    <button
+      type="button"
+      disabled={isEmpty}
+      className={`ml-2 p-2 rounded-full transition-colors ${
+        isEmpty
+          ? "bg-gray-600 cursor-not-allowed"
+          : "bg-green-600 hover:bg-green-700"
+      }`}
+      onClick={() => onClick(editor)}
+    >
+      <SendMessageIcon width={24} height={24} />
+    </button>
+  );
+};
+
 export const LexicalMessageInput = ({
   onMessageChange,
   handleSendMessage,
@@ -95,6 +151,27 @@ export const LexicalMessageInput = ({
   const [isEmpty, setIsEmpty] = useState(true);
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  const handleSendClick = useCallback(
+    (editor: LexicalEditor) => {
+      const markdown = editor.getEditorState().read(() => {
+        return $convertToMarkdownString(TRANSFORMERS);
+      });
+
+      if (markdown.trim()) {
+        handleSendMessage(markdown);
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            selection.format = 0;
+          }
+        });
+      }
+    },
+    [handleSendMessage],
+  );
 
   const initialConfig = {
     namespace: "MessageInput",
@@ -192,57 +269,6 @@ export const LexicalMessageInput = ({
     };
   }, []);
 
-  // Компонент для обработки отправки сообщений
-  const SendHandlerPlugin = () => {
-    const [editor] = useLexicalComposerContext();
-
-    const handleSendClick = useCallback(() => {
-      const markdown = editor.getEditorState().read(() => {
-        return $convertToMarkdownString(TRANSFORMERS);
-      });
-
-      if (markdown.trim()) {
-        handleSendMessage(markdown);
-        // Очищаем редактор и принудительно сбрасываем форматирование
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const selection = $getSelection();
-          if ($isRangeSelection(selection)) {
-            selection.format = 0; // Forcefully clear all text formats
-          }
-        });
-      }
-    }, [handleSendMessage, editor]);
-
-    useEffect(() => {
-      const button = document.querySelector('button[type="submit"]');
-      if (button) {
-        const handleClick = (e: Event) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleSendClick();
-        };
-
-        button.removeEventListener("click", handleClick);
-        button.addEventListener("click", handleClick);
-
-        return () => {
-          button.removeEventListener("click", handleClick);
-        };
-      }
-    }, [handleSendClick]);
-
-    return null;
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      // Для обработки через плагин
-    }
-  };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -300,13 +326,12 @@ export const LexicalMessageInput = ({
           <div className="flex-1">
             <LexicalComposer initialConfig={initialConfig}>
               <StateHandlerPlugin />
-              <SendHandlerPlugin />
+              <KeyboardSendPlugin onSend={handleSendClick} isEmpty={isEmpty} />
               <RichTextPlugin
                 contentEditable={
                   <ContentEditable
                     className="w-full flex flex-col bg-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-[24px]"
                     data-placeholder="Введите сообщение..."
-                    onKeyDown={handleKeyDown}
                     ref={editorRef}
                   />
                 }
@@ -327,22 +352,10 @@ export const LexicalMessageInput = ({
                   toolbarRef={toolbarRef}
                 />
               )}
+              <div className="absolute right-2 bottom-2">
+                <SendButton onClick={handleSendClick} isEmpty={isEmpty} />
+              </div>
             </LexicalComposer>
-          </div>
-          <div className="flex self-stretch">
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={isEmpty}
-                className={`ml-2 p-2 rounded-full transition-colors ${
-                  isEmpty
-                    ? "bg-gray-600 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}
-              >
-                <SendMessageIcon width={24} height={24} />
-              </button>
-            </div>
           </div>
         </div>
       </div>

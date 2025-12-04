@@ -155,11 +155,24 @@ export const useChatStore = create<ChatState>((set, _get) => ({
       const newLastMessage = filteredMessages.at(-1);
 
       // Обновляем последнее сообщение в чате
-      const updatedChats = state.chats.map((chat) =>
-        chat.id === chatId && newLastMessage
-          ? { ...chat, messages: [newLastMessage] }
-          : chat,
-      );
+      const updatedChats = state.chats
+        .map((chat) =>
+          chat.id === chatId && newLastMessage
+            ? { ...chat, messages: [newLastMessage] }
+            : chat,
+        )
+        .sort((a, b) => {
+          const aLastMessage = a.messages?.[0];
+          const bLastMessage = b.messages?.[0];
+
+          if (!aLastMessage) return 1;
+          if (!bLastMessage) return -1;
+
+          return (
+            new Date(bLastMessage.createdAt).getTime() -
+            new Date(aLastMessage.createdAt).getTime()
+          );
+        });
 
       return {
         chats: updatedChats,
@@ -170,7 +183,21 @@ export const useChatStore = create<ChatState>((set, _get) => ({
       };
     }),
 
-  setChats: (chats) => set({ chats }),
+  setChats: (chats) =>
+    set({
+      chats: chats.sort((a, b) => {
+        const aLastMessage = a.messages?.[0];
+        const bLastMessage = b.messages?.[0];
+
+        if (!aLastMessage) return 1;
+        if (!bLastMessage) return -1;
+
+        return (
+          new Date(bLastMessage.createdAt).getTime() -
+          new Date(aLastMessage.createdAt).getTime()
+        );
+      }),
+    }),
   setIsLoadingChats: (isLoading) => set({ isLoadingChats: isLoading }),
   setIsLoadingMessages: (isLoading) => set({ isLoadingMessages: isLoading }),
   addConnectedChatId: (chatId: string) =>
@@ -234,7 +261,18 @@ export const useChatStore = create<ChatState>((set, _get) => ({
     set((state) => {
       if (state.pendingChats) {
         return {
-          chats: state.pendingChats,
+          chats: state.pendingChats.sort((a, b) => {
+            const aLastMessage = a.messages?.[0];
+            const bLastMessage = b.messages?.[0];
+
+            if (!aLastMessage) return 1;
+            if (!bLastMessage) return -1;
+
+            return (
+              new Date(bLastMessage.createdAt).getTime() -
+              new Date(aLastMessage.createdAt).getTime()
+            );
+          }),
           pendingChats: null,
           initialChatsLoaded: true,
         };
