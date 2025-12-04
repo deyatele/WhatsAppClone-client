@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { User } from "../../types";
 
 interface UserAvatarProps {
@@ -26,17 +27,20 @@ export const UserAvatar = ({
     lg: "text-3xl",
   };
 
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div
       className={`${sizeClasses[size]} overflow-hidden flex justify-center items-center rounded-full bg-gray-700 ${className}`}
     >
-      {user?.avatar ? (
+      {user?.avatar && !imageError ? (
         <Image
           src={user.avatar}
           alt={user?.name ?? "Avatar"}
           width={size === "sm" ? 32 : size === "md" ? 56 : 80}
           height={size === "sm" ? 32 : size === "md" ? 56 : 80}
           className="object-cover"
+          onError={() => setImageError(true)}
         />
       ) : (
         <span className={textClasses[size]}>

@@ -27,7 +27,6 @@ export const useChat = () => {
   const addConnectedChatId = useChatStore((s) => s.addConnectedChatId);
   const removeConnectedChatId = useChatStore((s) => s.removeConnectedChatId);
   const activeChatMessages = messages[activeChatId || ""] || [];
-  const [newMessage, setNewMessage] = useState("");
 
   const [chatContainer, setChatContainer] = useState<HTMLDivElement | null>(
     null,
@@ -317,17 +316,17 @@ export const useChat = () => {
     });
   }, [userId, setPubKeyUser, activeChatId]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !socket || !activeChatId || !pubKeyUser) return;
+  const handleSendMessage = (text: string) => {
+    if (!text.trim() || !socket || !activeChatId || !pubKeyUser) return;
+
     const pubKeyOther = chats
       .find((chat) => chat.id === activeChatId)
       ?.participants.find((p) => p.user.id !== userId)?.user.publicKeyJwk;
     if (!pubKeyOther || !pubKeyUser) return;
-    encryptMessageForTwo(newMessage, pubKeyUser, pubKeyOther)
+
+    encryptMessageForTwo(text, pubKeyUser, pubKeyOther)
       .then((enMes) => {
         socket.emit("message:send", { chatId: activeChatId, text: enMes });
-        setNewMessage("");
 
         // После отправки сообщения пользователя, всегда скроллим к последнему сообщению
         if (chatContainer) {
@@ -384,11 +383,9 @@ export const useChat = () => {
     otherUser,
     activeChatMessages,
     pagination,
-    newMessage,
     chatContainer,
     loaderRef,
     chatContainerRef,
-    setNewMessage,
     handleSendMessage,
     handleDeleteMessage,
     handleActionCreateChat,

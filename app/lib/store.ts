@@ -62,24 +62,6 @@ const messageUtils = {
 
     return false;
   },
-
-  updateChatLastMessage: (
-    chat: Chat,
-    messages: Message[],
-    deletedMessageId: string,
-  ): Chat => {
-    if (!chat.messages?.[0]) return chat;
-
-    const lastMessage = messages.at(-2);
-    if (chat.messages[0].id === deletedMessageId && lastMessage) {
-      return {
-        ...chat,
-        messages: [lastMessage],
-      };
-    }
-
-    return chat;
-  },
 };
 export const useChatStore = create<ChatState>((set, _get) => ({
   activeChatId: null,
@@ -138,13 +120,16 @@ export const useChatStore = create<ChatState>((set, _get) => ({
       }
       // Обновление чата
       const updatedChats = state.chats.map((chat) =>
-        chat.id === chatId
-          ? { ...chat, messages: [...(chat.messages || []), message] }
-          : chat,
+        chat.id === chatId ? { ...chat, messages: [message] } : chat,
       );
 
+      // Перемещаем обновленный чат в начало списка
+      const chatToMove = updatedChats.find((chat) => chat.id === chatId);
+      const otherChats = updatedChats.filter((chat) => chat.id !== chatId);
+
+      const finalChats = chatToMove ? [chatToMove, ...otherChats] : otherChats;
       return {
-        chats: updatedChats,
+        chats: finalChats,
         messages: {
           ...state.messages,
           [chatId]: [...chatMessages, message],
@@ -165,15 +150,16 @@ export const useChatStore = create<ChatState>((set, _get) => ({
         return state;
       }
 
-      // Обновляем последнее сообщение в чате
-      const updatedChats = state.chats.map((chat) =>
-        chat.id === chatId
-          ? messageUtils.updateChatLastMessage(chat, chatMessages, message.id)
-          : chat,
-      );
-
       // Фильтруем сообщения
       const filteredMessages = chatMessages.filter((m) => m.id !== message.id);
+      const newLastMessage = filteredMessages.at(-1);
+
+      // Обновляем последнее сообщение в чате
+      const updatedChats = state.chats.map((chat) =>
+        chat.id === chatId && newLastMessage
+          ? { ...chat, messages: [newLastMessage] }
+          : chat,
+      );
 
       return {
         chats: updatedChats,

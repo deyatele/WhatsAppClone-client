@@ -16,8 +16,6 @@ export const ChatWindow = () => {
     activeChatMessages,
     chatContainerRef,
     loaderRef,
-    newMessage,
-    setNewMessage,
     handleSendMessage,
     handleDeleteMessage,
     chatContainer,
@@ -51,9 +49,8 @@ export const ChatWindow = () => {
         />
       )}
       <MessageInput
-        newMessage={newMessage}
-        setNewMessage={setNewMessage}
         handleSendMessage={handleSendMessage}
+        onMessageChange={() => {}}
       />
     </div>
   );

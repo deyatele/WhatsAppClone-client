@@ -4,6 +4,7 @@ import { memo } from "react";
 import { useDateFormatter } from "../../lib/hooks/useDateFormatter";
 import type { Chat } from "../../types";
 import { UserAvatar } from "../ui/UserAvatar";
+import { SimpleMarkdownDisplay } from "./SimpleMarkdownDisplay";
 
 interface ChatItemProps {
   chat: Chat;
@@ -46,12 +47,23 @@ export const ChatItem = memo(
               </p>
             </div>
             <div className="flex justify-between items-center min-w-0">
-              <p
+              <div
                 className="text-sm text-gray-400 truncate"
-                title={lastMessage?.message}
+                title={
+                  lastMessage?.message
+                    ? `${lastMessage?.message.slice(0, 15)}...`
+                    : "Нет сообщения"
+                }
               >
-                {lastMessage?.message || "Пока нет сообщений"}
-              </p>
+                {lastMessage?.message ? (
+                  <SimpleMarkdownDisplay
+                    content={lastMessage.message}
+                    className="inline"
+                  />
+                ) : (
+                  "Пока нет сообщений"
+                )}
+              </div>
             </div>
           </div>
         </div>

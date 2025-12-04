@@ -12,6 +12,7 @@ import type { Message as MessageType } from "../../types";
 import { DeleteModal } from "../modal/deleteModal";
 import { useModal } from "../modal/ModalContext";
 import { UserAvatar } from "../ui/UserAvatar";
+import { MessageMarkdownDisplay } from "./MessageMarkdownDisplay";
 
 interface MessageProps {
   message: MessageType;
@@ -62,7 +63,7 @@ export const Message = ({
           </div>
         )}
         <div
-          className={`relative p-2 group rounded-lg max-w-md ${
+          className={`relative p-2 group rounded-lg max-w-full sm:max-w-[66%] ${
             isCurrentUser
               ? "bg-green-800 mr-2 rounded-tr-none"
               : "bg-gray-700 ml-2 rounded-tl-none"
@@ -70,9 +71,9 @@ export const Message = ({
         >
           <span
             aria-hidden="true"
-            className={`absolute top-0 w-2 h-[13px] z-50 block ${
+            className={`absolute top-0 w-2 h-[13px] z-10 block ${
               isCurrentUser
-                ? "text-green-800 mr-2 right-[-16] transform scale-x-[-1]"
+                ? "text-green-800 mr-2 right-[-16px] transform scale-x-[-1]"
                 : "text-gray-700 ml-2 -left-[16px] transform"
             }`}
           >
@@ -103,7 +104,9 @@ export const Message = ({
                 {message.sender?.name || "User"}
               </p>
             )}
-            <p className="break-words">{message.message}</p>
+            <div className="break-words max-w-full">
+              <MessageMarkdownDisplay content={message.message} />
+            </div>
             <p className="text-xs text-right text-gray-400 inline-block relative -bottom-3 -right-3">
               {format(message.createdAt)}
             </p>

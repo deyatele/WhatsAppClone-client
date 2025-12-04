@@ -70,3 +70,16 @@ html {
 .animate-slide-in-right {
   animation: slide-in-right 0.35s ease-out forwards;
 }
+
+[contentEditable="true"][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #777;
+  pointer-events: none;
+}
+[contentEditable="true"]:focus::before {
+  display: none;
+}
+
+.bg-blue-600 {
+  background-color: #3b82f6;
+}
