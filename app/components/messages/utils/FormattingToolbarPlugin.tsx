@@ -98,7 +98,7 @@ export const FormattingToolbarPlugin = ({
   return (
     <div
       ref={toolbarRef}
-      className="absolute bg-gray-900 rounded-lg p-4 shadow-lg z-20 opacity-80 flex space-x-1 transform -translate-x-1/2"
+      className="absolute bg-gray-700/75 rounded-2xl p-4 shadow-lg z-20 flex space-x-1 transform -translate-x-1/2"
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
@@ -107,7 +107,7 @@ export const FormattingToolbarPlugin = ({
     >
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 ${
+        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
           isBold ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
         }`}
         onClick={() => formatText("bold")}
@@ -116,7 +116,7 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 ${
+        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
           isItalic ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
         }`}
         onClick={() => formatText("italic")}
@@ -125,7 +125,7 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 ${
+        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
           isStrikethrough
             ? "bg-blue-600 text-white"
             : "hover:bg-gray-700 text-white"
@@ -136,7 +136,7 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 ${
+        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
           isCode ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
         }`}
         onClick={() => formatText("code")}

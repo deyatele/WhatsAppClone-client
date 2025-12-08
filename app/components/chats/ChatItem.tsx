@@ -57,7 +57,7 @@ export const ChatItem = memo(
               >
                 {lastMessage?.message ? (
                   <SimpleMarkdownDisplay
-                    content={lastMessage.message}
+                    content={`${lastMessage?.message.slice(0, 40)}${lastMessage?.message.length > 40 ? "..." : ""}`}
                     className="inline"
                   />
                 ) : (

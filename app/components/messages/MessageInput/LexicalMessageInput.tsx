@@ -14,6 +14,7 @@ import {
   $getSelection,
   $insertNodes,
   $isRangeSelection,
+  KEY_BACKSPACE_COMMAND,
   KEY_DOWN_COMMAND,
   type LexicalEditor,
 } from "lexical";
@@ -24,7 +25,7 @@ import {
   SendMessageIcon,
 } from "../../ui/icons";
 import { FormattingToolbarPlugin } from "../utils/FormattingToolbarPlugin";
-import { $createEmojiNode, EmojiNode } from "./emojiNode";
+import { $createEmojiNode, $isEmojiNode, EmojiNode } from "./emojiNode";
 
 interface LexicalMessageInputProps {
   onMessageChange?: (text: string) => void;
@@ -52,8 +53,10 @@ const EditorPlugin = ({
 
 const EmojiPickerPlugin = ({
   setIsEmojiPickerOpen,
+  isOpen,
 }: {
   setIsEmojiPickerOpen: (open: boolean) => void;
+  isOpen: boolean;
 }) => {
   const [editor] = useLexicalComposerContext();
 
@@ -74,9 +77,14 @@ const EmojiPickerPlugin = ({
   };
 
   return (
-    <div className="absolute bottom-full mb-2 left-4 rounded-lg z-10 overflow-y-auto">
+    <div
+      className="absolute bottom-full mb-2 left-4 rounded-lg z-10 overflow-y-auto "
+      role="dialog"
+      aria-modal="true"
+      aria-label="Выбор эмодзи"
+    >
       <EmojiPicker
-        open={true}
+        open={isOpen}
         theme={Theme.DARK}
         onEmojiClick={insertEmoji}
         searchPlaceholder="Поиск"
@@ -140,6 +148,42 @@ const SendButton = ({
   );
 };
 
+const EmojiDeletionPlugin = () => {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_BACKSPACE_COMMAND,
+      (event: KeyboardEvent) => {
+        const selection = $getSelection();
+
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+          return false;
+        }
+
+        const anchor = selection.anchor;
+        if (anchor.offset !== 0) {
+          return false;
+        }
+
+        const node = anchor.getNode();
+        const prevSibling = node.getPreviousSibling();
+
+        if ($isEmojiNode(prevSibling)) {
+          event.preventDefault();
+          prevSibling.remove();
+          return true;
+        }
+
+        return false;
+      },
+      1, // Use a high priority
+    );
+  }, [editor]);
+
+  return null;
+};
+
 export const LexicalMessageInput = ({
   onMessageChange,
   handleSendMessage,
@@ -176,12 +220,12 @@ export const LexicalMessageInput = ({
   const initialConfig = {
     namespace: "MessageInput",
     theme: {
-      paragraph: "mb-0",
+      paragraph: "mb-0 select-text",
       text: {
         bold: "font-bold",
         italic: "italic",
         strikethrough: "line-through",
-        code: "bg-gray-800 px-1 rounded font-mono",
+        code: "bg-gray-800 px-1 rounded font-mono leading-[1.1]",
       },
     },
     nodes: [EmojiNode],
@@ -238,8 +282,10 @@ export const LexicalMessageInput = ({
         return;
       }
 
-      const top = rect.top - containerRect.top - 80;
-      const left = rect.left - containerRect.left + rect.width / 2;
+      const top = rect.top - containerRect.top - 100;
+      let left = rect.left - containerRect.left + 50 + rect.width / 2;
+      if (left < 80) left = 80;
+      if (left > containerRect.left) left = left - 20;
       setToolbarPosition({ top, left });
       setShowFormattingToolbar(true);
     };
@@ -323,14 +369,15 @@ export const LexicalMessageInput = ({
               </button>
             </div>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 flex items-center">
             <LexicalComposer initialConfig={initialConfig}>
+              <EmojiDeletionPlugin />
               <StateHandlerPlugin />
               <KeyboardSendPlugin onSend={handleSendClick} isEmpty={isEmpty} />
               <RichTextPlugin
                 contentEditable={
                   <ContentEditable
-                    className="w-full flex flex-col bg-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-[24px]"
+                    className="w-full p-2 g-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-[24px]"
                     data-placeholder="Введите сообщение..."
                     ref={editorRef}
                   />
@@ -344,6 +391,7 @@ export const LexicalMessageInput = ({
               {isEmojiPickerOpen && (
                 <EmojiPickerPlugin
                   setIsEmojiPickerOpen={setIsEmojiPickerOpen}
+                  isOpen={isEmojiPickerOpen}
                 />
               )}
               {showFormattingToolbar && (
@@ -352,7 +400,7 @@ export const LexicalMessageInput = ({
                   toolbarRef={toolbarRef}
                 />
               )}
-              <div className="absolute right-2 bottom-2">
+              <div className="flex self-stretch items-end">
                 <SendButton onClick={handleSendClick} isEmpty={isEmpty} />
               </div>
             </LexicalComposer>
