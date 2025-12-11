@@ -10,7 +10,7 @@ export const SimpleMarkdownDisplay = ({
   className,
 }: SimpleMarkdownDisplayProps) => {
   if (!content) return null;
-
+console.log(content)
   // Заменяем HTML-сущности обратно в символы
   let processedContent = content
     .replace(/&amp;/g, "&")
@@ -38,13 +38,18 @@ export const SimpleMarkdownDisplay = ({
   );
   // Код
   processedContent = processedContent.replace(
-    /`(.*?)`/g,
-    (_, content) => `<code>${content}</code>`,
-  );
+  /(`[^`]*`)(\s*(`[^`]*`))*/g,
+  (match) => {
+    const content = match
+      .replace(/`/g, '')
+      .replace(/\n/g, ' ')         
+    return `<pre>${content}</pre>`;
+  }
+);
 
   // Создаем безопасный способ вставки HTML
   const createMarkup = () => ({ __html: processedContent });
-
+console.log('post',processedContent)
   return createElement("span", {
     className,
     dangerouslySetInnerHTML: createMarkup(),

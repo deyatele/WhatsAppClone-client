@@ -203,6 +203,7 @@ export const LexicalMessageInput = ({
       });
 
       if (markdown.trim()) {
+        console.log(markdown);
         handleSendMessage(markdown);
         editor.update(() => {
           const root = $getRoot();
@@ -267,13 +268,16 @@ export const LexicalMessageInput = ({
     const handleSelectionChange = () => {
       const selection = window.getSelection();
       if (!editorRef.current) return;
-
       if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
         setShowFormattingToolbar(false);
         return;
       }
 
       const range = selection.getRangeAt(0);
+      if (!editorRef.current.contains(range.commonAncestorContainer)) {
+        setShowFormattingToolbar(false);
+        return;
+      }
       const rect = range.getBoundingClientRect();
       const containerRect = editorRef.current.getBoundingClientRect();
 

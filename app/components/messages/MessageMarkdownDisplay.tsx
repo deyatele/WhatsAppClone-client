@@ -66,8 +66,8 @@ export const MessageMarkdownDisplay = ({
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className="w-full bg-transparent resize-none outline-none min-h-[24px] pointer-events-none"
-            contentEditable={false} // Не редактируемый
+            className="w-full bg-transparent resize-none outline-none min-h-6 pointer-events-none"
+            contentEditable={false} 
             suppressContentEditableWarning
           />
         }

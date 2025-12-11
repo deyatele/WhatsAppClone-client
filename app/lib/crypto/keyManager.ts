@@ -72,7 +72,6 @@ export async function putRecord(record: KeyRecord) {
 }
 
 async function getRecord(id: string): Promise<KeyRecord | null> {
-  console.log("getRecord", id);
   const db = await openDb();
   return new Promise((res, rej) => {
     const tx = db.transaction(STORE_NAME, "readonly");
