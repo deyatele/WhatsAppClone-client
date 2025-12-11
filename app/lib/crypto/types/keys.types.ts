@@ -24,6 +24,12 @@ export const privateKeyJwkSchema = z.object({
   iterations: z.string(), // Минимальное безопасное количество итераций
 });
 
+export const keysRecordSchema = z.object({
+  id: z.string(),
+  publicKeyJwk: rsaPublicKeyJwkSchema,
+  privateKeyJwk: privateKeyJwkSchema,
+});
+
 export type privateKeyJwk = z.infer<typeof privateKeyJwkSchema>;
 
 export type KeyRecord = {

@@ -181,3 +181,35 @@ export async function getChatsAction() {
   const { chats, userId } = await getChatsAndToken();
   return { chats, userId };
 }
+
+export async function getMyKeys(token: string, id: string) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const targetUrl = `${API_URL}/users/${id}/keysBackup`;
+  try {
+    const res = await fetch(targetUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(
+        `HTTP error! status: ${res.status}, message: ${errorText}`,
+      );
+    }
+
+    const data = await res.json();
+
+    return data;
+  } catch (e) {
+    console.error("getMyKeys error:", e);
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Unknown error",
+      serverUnavailable: true,
+    };
+  }
+}

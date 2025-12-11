@@ -10,7 +10,11 @@ import {
   type User,
   userSchema,
 } from "../types";
-import type { JsonWebKeyPrivate } from "./crypto/types/keys.types";
+import {
+  type JsonWebKeyPrivate,
+  type KeyRecord,
+  keysRecordSchema,
+} from "./crypto/types/keys.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
@@ -202,3 +206,17 @@ export const chatApi = {
     return paginatedMessagesSchema.parse(data);
   },
 };
+
+export async function getMyKeysFromServer(
+  id: string,
+): Promise<KeyRecord | null> {
+  const response = await fetch(`${BASE_URL}/api/users/${id}/keys`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "GET",
+  });
+  const jsonData = await response.json();
+
+  return keysRecordSchema.parse(jsonData);
+}

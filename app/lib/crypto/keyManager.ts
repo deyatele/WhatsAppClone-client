@@ -1,3 +1,4 @@
+import { getMyKeysFromServer } from "../api";
 import { log } from "../log";
 /* Ключевой менеджер.
    Интерфейсы и экспорт функций:
@@ -71,14 +72,43 @@ export async function putRecord(record: KeyRecord) {
 }
 
 async function getRecord(id: string): Promise<KeyRecord | null> {
+  console.log("getRecord", id);
   const db = await openDb();
   return new Promise((res, rej) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const r = store.get(id);
-    r.onsuccess = () => res(r.result ?? null);
-    r.onerror = () => rej(new Error("Ошибка чтения IndexedDB"));
+
+    r.onsuccess = () => {
+      if (!r.result) {
+        getMyKeys(id).then((keys) => {
+          console.log(keys);
+          if (keys) {
+            return res(keys);
+          } else {
+            return rej(new Error("Ошибка чтения IndexedDB"));
+          }
+        });
+      } else res(r.result ?? null);
+    };
+    r.onerror = async () => {
+      getMyKeys(id).then((keys) => {
+        console.log(keys);
+        if (keys) {
+          return res(keys);
+        } else {
+          return rej(new Error("Ошибка чтения IndexedDB"));
+        }
+      });
+    };
   });
+}
+
+async function getMyKeys(id: string): Promise<KeyRecord | null> {
+  const keys = await getMyKeysFromServer(id);
+  if (!keys) return null;
+  await putRecord(keys);
+  return keys;
 }
 
 async function getAllRecords(): Promise<KeyRecord[]> {

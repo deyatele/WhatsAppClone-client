@@ -371,13 +371,15 @@ export const LexicalMessageInput = ({
           </div>
           <div className="flex-1 flex items-center">
             <LexicalComposer initialConfig={initialConfig}>
+              <HistoryPlugin />
+              <OnChangePlugin onChange={() => {}} />
               <EmojiDeletionPlugin />
               <StateHandlerPlugin />
               <KeyboardSendPlugin onSend={handleSendClick} isEmpty={isEmpty} />
               <RichTextPlugin
                 contentEditable={
                   <ContentEditable
-                    className="w-full p-2 g-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-[24px]"
+                    className="w-full p-2 g-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-6"
                     data-placeholder="Введите сообщение..."
                     ref={editorRef}
                   />
@@ -385,8 +387,6 @@ export const LexicalMessageInput = ({
                 placeholder={null}
                 ErrorBoundary={() => null}
               />
-              <HistoryPlugin />
-              <OnChangePlugin onChange={() => {}} />
               <EditorPlugin onMessageChange={onMessageChange} />
               {isEmojiPickerOpen && (
                 <EmojiPickerPlugin

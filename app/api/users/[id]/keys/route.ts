@@ -1,6 +1,7 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { JsonWebKeys } from "../../../../lib/crypto/types/keys.types";
-import { updateMyKeys } from "../../../../lib/serverActions";
+import { getMyKeys, updateMyKeys } from "../../../../lib/serverActions";
 
 export async function PUT(
   req: Request,
@@ -25,6 +26,36 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("API /users/[id]/keys error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Internal error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  try {
+    const cookiesStore = await cookies();
+    const token = cookiesStore.get("accessToken")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const result = await getMyKeys(token, id);
+    if (!result) {
+      return NextResponse.json(
+        { error: "Failed to fetch keys" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(result);
+  } catch (e) {
+    console.error("API /users/[id]/keys GET error:", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Internal error" },
       { status: 500 },
