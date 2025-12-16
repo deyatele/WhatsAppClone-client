@@ -1,18 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import {
-  getMessageStatus,
-  getStatusColor,
-  type MessageStatus,
-} from "../../lib/crypto/messageStatus";
 import { useDateFormatter } from "../../lib/hooks/useDateFormatter";
 import type { Message as MessageType } from "../../types";
 import { DeleteModal } from "../modal/deleteModal";
 import { useModal } from "../modal/ModalContext";
+import { CheckmarkIcon } from "../ui/icons";
 import { UserAvatar } from "../ui/UserAvatar";
-import { MessageMarkdownDisplay } from "./MessageMarkdownDisplay";
+import { MessageDisplay } from "./MessageDisplay";
 
 interface MessageProps {
   message: MessageType;
@@ -26,13 +20,13 @@ export const Message = ({
   handleDeleteMessage,
 }: MessageProps) => {
   const { openModal, closeModal } = useModal();
-  const [status, setStatus] = useState("pending");
+  // const [status, setStatus] = useState("pending");
   const { format } = useDateFormatter();
 
-  useEffect(() => {
+  /*  useEffect(() => {
     const s = getMessageStatus(message.id);
     if (s) setStatus(s);
-  }, [message.id]);
+  }, [message.id]); */
 
   const handleDeleteClick = () => {
     openModal(
@@ -45,17 +39,17 @@ export const Message = ({
     );
   };
 
-  const color = getStatusColor(status as MessageStatus);
+  // const color = getStatusColor(status as MessageStatus);
 
   return (
     <div
       key={message.id}
       className={`relative flex flex-col ${
         isCurrentUser ? "items-end" : "items-start"
-      }`}
+      } `}
     >
       <div
-        className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
+        className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} w-full`}
       >
         {!isCurrentUser && (
           <div className="mr-1">
@@ -63,7 +57,7 @@ export const Message = ({
           </div>
         )}
         <div
-          className={`relative p-2 group rounded-lg max-w-full sm:max-w-[66%] ${
+          className={`relative p-2 group rounded-lg max-w-[90%] sm:max-w-[66%] ${
             isCurrentUser
               ? "bg-green-800 mr-2 rounded-tr-none"
               : "bg-gray-700 ml-2 rounded-tl-none"
@@ -73,8 +67,8 @@ export const Message = ({
             aria-hidden="true"
             className={`absolute top-0 w-2 h-[13px] z-10 block ${
               isCurrentUser
-                ? "text-green-800 mr-2 right-[-16px] transform scale-x-[-1]"
-                : "text-gray-700 ml-2 -left-[16px] transform"
+                ? "text-green-800 mr-2 right-4 transform scale-x-[-1]"
+                : "text-gray-700 ml-2 -left-4 transform"
             }`}
           >
             <svg viewBox="0 0 8 13" height="13" width="8" x="0px" y="0px">
@@ -98,23 +92,24 @@ export const Message = ({
           >
             X
           </button>
-          <div className="flex flex-col p-2 pr-4">
+          <div className="flex flex-col p-2 pr-4 ">
             {!isCurrentUser && (
               <p className="text-sm font-bold text-green-300 pr-3 self-start">
                 {message.sender?.name || "User"}
               </p>
             )}
-            <div className="break-words max-w-full">
-              <MessageMarkdownDisplay content={message.message} />
+            <div className="w-full overflow-hidden">
+              <MessageDisplay content={message.message} />
             </div>
-            <p className="text-xs text-right text-gray-400 inline-block relative -bottom-3 -right-3">
-              {format(message.createdAt)}
+            <p className="flex justify-end text-xs text-right text-gray-400  relative -bottom-3 -right-3">
+              <span>{format(message.createdAt)}</span>
+              <span className="ml-1">{<CheckmarkIcon />}</span>
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-1 text-xs" style={{ color }}>
+      {/* <div className="flex items-center gap-2 mt-1 text-xs" style={{ color }}>
         <span>{status}</span>
         {(status === "failed" || status === "undelivered") && (
           <button
@@ -124,7 +119,7 @@ export const Message = ({
             Повторить
           </button>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };

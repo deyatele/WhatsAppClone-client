@@ -48,10 +48,7 @@ export const ChatWindow = () => {
           chatContainer={chatContainer}
         />
       )}
-      <MessageInput
-        handleSendMessage={handleSendMessage}
-        onMessageChange={() => {}}
-      />
+      <MessageInput handleSendMessage={handleSendMessage} />
     </div>
   );
 };

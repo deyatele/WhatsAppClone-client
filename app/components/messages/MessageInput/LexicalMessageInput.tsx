@@ -1,7 +1,9 @@
 "use client";
 
-import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import {
+  type InitialConfigType,
+  LexicalComposer,
+} from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -24,32 +26,13 @@ import {
   EmojiPickerIcon,
   SendMessageIcon,
 } from "../../ui/icons";
-import { FormattingToolbarPlugin } from "../utils/FormattingToolbarPlugin";
+import { handlerDragAndDrop } from "../utils/dragAndDrop/dragAndDropHandlers";
+import { FormattingToolbarPlugin } from "../utils/lexicalPlugin//FormattingToolbarPlugin";
 import { $createEmojiNode, $isEmojiNode, EmojiNode } from "./emojiNode";
 
 interface LexicalMessageInputProps {
-  onMessageChange?: (text: string) => void;
   handleSendMessage: (text: string) => void;
 }
-
-const EditorPlugin = ({
-  onMessageChange,
-}: {
-  onMessageChange?: (text: string) => void;
-}) => {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      editorState.read(() => {
-        const markdown = $convertToMarkdownString(TRANSFORMERS);
-        onMessageChange?.(markdown);
-      });
-    });
-  }, [editor, onMessageChange]);
-
-  return null;
-};
 
 const EmojiPickerPlugin = ({
   setIsEmojiPickerOpen,
@@ -73,6 +56,7 @@ const EmojiPickerPlugin = ({
         $insertNodes([emojiNode]);
       }
     });
+
     setIsEmojiPickerOpen(false);
   };
 
@@ -185,7 +169,6 @@ const EmojiDeletionPlugin = () => {
 };
 
 export const LexicalMessageInput = ({
-  onMessageChange,
   handleSendMessage,
 }: LexicalMessageInputProps) => {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
@@ -196,33 +179,32 @@ export const LexicalMessageInput = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
+  const { handleDragOver, handleDragLeave, handleDrop, handleAttachmentClick } =
+    handlerDragAndDrop(setIsDragging);
+
   const handleSendClick = useCallback(
     (editor: LexicalEditor) => {
-      const markdown = editor.getEditorState().read(() => {
-        return $convertToMarkdownString(TRANSFORMERS);
+      const editorState = editor.getEditorState();
+      const jsonString = JSON.stringify(editorState);
+      handleSendMessage(jsonString);
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          selection.format = 0;
+        }
       });
-
-      if (markdown.trim()) {
-        console.log(markdown);
-        handleSendMessage(markdown);
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const selection = $getSelection();
-          if ($isRangeSelection(selection)) {
-            selection.format = 0;
-          }
-        });
-      }
     },
     [handleSendMessage],
   );
 
-  const initialConfig = {
+  const initialConfig: InitialConfigType = {
     namespace: "MessageInput",
     theme: {
       paragraph: "mb-0 select-text",
       text: {
+        base: "inline",
         bold: "font-bold",
         italic: "italic",
         strikethrough: "line-through",
@@ -295,8 +277,20 @@ export const LexicalMessageInput = ({
     };
 
     document.addEventListener("selectionchange", handleSelectionChange);
+    window.addEventListener("blur", () => {
+      document.documentElement.classList.add("window-inactive");
+    });
+    window.addEventListener("focus", () => {
+      document.documentElement.classList.remove("window-inactive");
+    });
     return () => {
       document.removeEventListener("selectionchange", handleSelectionChange);
+      window.removeEventListener("blur", () => {
+        document.documentElement.classList.add("window-inactive");
+      });
+      window.removeEventListener("focus", () => {
+        document.documentElement.classList.remove("window-inactive");
+      });
     };
   }, []);
 
@@ -319,36 +313,9 @@ export const LexicalMessageInput = ({
     };
   }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      console.log(`Файлы (${files.length}) были перетащены.`);
-      // Обработка вложений — отдельно
-    }
-  };
-
-  const handleAttachmentClick = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.multiple = true;
-    input.click();
-  };
-
   return (
     <div
-      className={`relative p-4 bg-gray-800 ${isDragging ? "bg-gray-700" : ""}`}
+      className={`relative p-2 md:p-4 bg-gray-800 ${isDragging ? "bg-gray-700" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -383,7 +350,7 @@ export const LexicalMessageInput = ({
               <RichTextPlugin
                 contentEditable={
                   <ContentEditable
-                    className="w-full p-2 g-transparent text-white text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-6"
+                    className="w-full p-2 text-white md:text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-6"
                     data-placeholder="Введите сообщение..."
                     ref={editorRef}
                   />
@@ -391,7 +358,6 @@ export const LexicalMessageInput = ({
                 placeholder={null}
                 ErrorBoundary={() => null}
               />
-              <EditorPlugin onMessageChange={onMessageChange} />
               {isEmojiPickerOpen && (
                 <EmojiPickerPlugin
                   setIsEmojiPickerOpen={setIsEmojiPickerOpen}
@@ -404,7 +370,7 @@ export const LexicalMessageInput = ({
                   toolbarRef={toolbarRef}
                 />
               )}
-              <div className="flex self-stretch items-end">
+              <div className="flex self-stretch items-end ">
                 <SendButton onClick={handleSendClick} isEmpty={isEmpty} />
               </div>
             </LexicalComposer>

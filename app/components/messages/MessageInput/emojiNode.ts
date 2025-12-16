@@ -89,7 +89,11 @@ export class EmojiNode extends TextNode {
     return true;
   }
 
-  createDOM(_config: EditorConfig): HTMLElement {
+  getTextContent(): string {
+    return this.__emoji;
+  }
+
+  /*  createDOM(_config: EditorConfig): HTMLElement {
     const element = document.createElement("span");
     element.className = "emojiImage";
     element.setAttribute("aria-label", this.__emoji);
@@ -116,31 +120,57 @@ export class EmojiNode extends TextNode {
     }
 
     return element;
+  } */
+
+  createDOM(_config: EditorConfig): HTMLElement {
+    const element = document.createElement("span");
+    element.className = "emoji-node";
+    element.setAttribute("aria-label", this.__emoji);
+    element.style.backgroundImage = `url(${this.__imageUrl})`;
+    element.setAttribute("tabindex", "-1");
+    if (!this.__imageUrl) {
+      element.style.color = "inherit";
+    }
+    element.textContent = this.__emoji;
+
+    return element;
   }
 
-  updateDOM(prevNode: this, dom: HTMLElement): boolean {
+  /* updateDOM(prevNode: this, dom: HTMLElement): boolean {
     if (
       prevNode.__emoji !== this.__emoji ||
       prevNode.__imageUrl !== this.__imageUrl
     ) {
       dom.setAttribute("aria-label", this.__emoji);
+
+      // Удаляем старый <img>, если есть
+      /* const existingImg = dom.querySelector("img");
+      if (existingImg) {
+        existingImg.remove();
+      } 
+
       if (this.__imageUrl) {
-        dom.style.backgroundImage = `url("${this.__imageUrl}")`;
+        const img = document.createElement("img");
+        img.src = this.__imageUrl;
+        img.alt = this.__emoji;
+        img.className = "emoji-node";
+        img.width = 20;
+        img.height = 20;
+        img.style.verticalAlign = "middle";
+        dom.appendChild(img);
       } else {
-        dom.style.backgroundImage = "";
+        dom.textContent = this.__emoji;
       }
-      // Обновляем textContent, если emoji изменился
-      dom.textContent = this.__emoji;
       return true;
     }
     return false;
-  }
+  } */
 
   static importDOM(): DOMConversionMap | null {
     return {
       span: (domNode: HTMLElement) => {
         if (
-          domNode.classList.contains("emojiImage") ||
+          domNode.classList.contains("emoji-node") ||
           domNode.style.backgroundImage.includes("emoji")
         ) {
           return {
@@ -155,14 +185,12 @@ export class EmojiNode extends TextNode {
 
   exportDOM(): DOMExportOutput {
     const element = document.createElement("span");
-    element.className = "emojiImage";
-    // УБИРАЕМ: element.setAttribute("data-lexical-text", "true");
+    element.className = "emoji-node";
     element.setAttribute("aria-label", this.__emoji);
-
-    if (this.__imageUrl) {
-      element.style.backgroundImage = `url("${this.__imageUrl}")`;
-    }
     element.textContent = this.__emoji;
+    if (this.__imageUrl) {
+      element.style.backgroundImage = this.__imageUrl;
+    }
 
     return { element };
   }
@@ -173,13 +201,12 @@ export class EmojiNode extends TextNode {
       serialized.unified,
       serialized.names,
       serialized.imageUrl,
-    );
+    ).updateFromJSON(serialized);
   }
 
   exportJSON(): SerializedEmojiNode {
-    const baseSerialized = super.exportJSON();
     return {
-      ...baseSerialized,
+      ...super.exportJSON(),
       type: "emoji",
       version: 1,
       emoji: this.__emoji,

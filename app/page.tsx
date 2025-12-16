@@ -13,7 +13,7 @@ import type { ChatResponse } from "./types";
 
 export default function Home() {
   const [chats, setChats] = useState<ChatResponse[]>([]);
-  const isChatListOpen = useChatStore((state) => state.isChatListOpen);
+  const { isChatListOpen, setIsChatList, activeChatId } = useChatStore();
   const setPassword = useChatStore((state) => state.setPassword);
   const password = useChatStore((state) => state.password);
   const setUserId = useChatStore((state) => state.setUserId);
@@ -55,6 +55,23 @@ export default function Home() {
     },
     [setPassword],
   );
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (
+        activeChatId &&
+        isChatListOpen &&
+        isMounted &&
+        window.innerWidth < 768
+      ) {
+        setIsChatList(false);
+      }
+      console.log("first");
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [activeChatId, isChatListOpen, isMounted, setIsChatList]);
 
   useEffect(() => {
     if (isMounted && !password) {

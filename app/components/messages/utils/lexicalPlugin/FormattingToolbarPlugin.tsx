@@ -11,7 +11,7 @@ import {
   FormattingCodeIcon,
   FormattingItalicIcon,
   FormattingStrikethroughIcon,
-} from "../../ui/icons";
+} from "../../../ui/icons";
 
 export const FormattingToolbarPlugin = ({
   position,

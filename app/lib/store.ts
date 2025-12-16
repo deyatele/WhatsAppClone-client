@@ -24,6 +24,7 @@ interface ChatState {
 
   // Действия
   toggleChatList: () => void;
+  setIsChatList: (value: boolean) => void;
   setActiveChatId: (id: string | null) => void;
   setInitialMessages: (chatId: string, messages: Message[]) => void;
   addMessagesToStart: (chatId: string, messages: Message[]) => void;
@@ -86,6 +87,8 @@ export const useChatStore = create<ChatState>((set, _get) => ({
 
   toggleChatList: () =>
     set((state) => ({ isChatListOpen: !state.isChatListOpen })),
+
+  setIsChatList: (value) => set({ isChatListOpen: value }),
 
   setPassword: (password) => set({ password }),
 

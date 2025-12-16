@@ -92,7 +92,7 @@ const ChatListComponent = () => {
         </div>
       </div>
       {isDebug && (
-        <div className="absolute z-[1000] bottom-0 pb-15 w-[100%]">
+        <div className="absolute z-1000 bottom-0 pb-15 w-full">
           <LogPanel />
         </div>
       )}
