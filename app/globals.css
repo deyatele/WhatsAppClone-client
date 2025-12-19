@@ -109,13 +109,15 @@ html {
 }
 
 .emoji-node {
-  display: inline;
+  display: inline-block;
   caret-color: #ffffff;
   color: transparent;
   text-align: right;
+  width: 1.2em;
+  height: 1.2em;
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 1em 1em;
+  background-size: contain;
 }
 
 .emoji-node::selection {

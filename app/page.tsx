@@ -66,7 +66,6 @@ export default function Home() {
       ) {
         setIsChatList(false);
       }
-      console.log("first");
     };
     window.addEventListener("resize", handleResize);
 

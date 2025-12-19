@@ -9,164 +9,25 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import type { EmojiClickData } from "emoji-picker-react";
-import EmojiPicker, { SkinTones, Theme } from "emoji-picker-react";
 import {
   $getRoot,
   $getSelection,
-  $insertNodes,
   $isRangeSelection,
-  KEY_BACKSPACE_COMMAND,
-  KEY_DOWN_COMMAND,
   type LexicalEditor,
 } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AttachmentIcon,
-  EmojiPickerIcon,
-  SendMessageIcon,
-} from "../../ui/icons";
+import { AttachmentIcon, EmojiPickerIcon } from "../../ui/icons";
+import { SendButton } from "../../ui/sendButton";
 import { handlerDragAndDrop } from "../utils/dragAndDrop/dragAndDropHandlers";
+import { EmojiDeletionPlugin } from "../utils/emojiPlugin/EmojiDeletionPlugin";
+import { EmojiPickerPlugin } from "../utils/emojiPlugin/emojiPickerPlugin";
+import { KeyboardSendPlugin } from "../utils/KeyboardPlugin/KeyboardSendPlugin";
 import { FormattingToolbarPlugin } from "../utils/lexicalPlugin//FormattingToolbarPlugin";
-import { $createEmojiNode, $isEmojiNode, EmojiNode } from "./emojiNode";
+import { EmojiNode } from "./emojiNode";
 
 interface LexicalMessageInputProps {
   handleSendMessage: (text: string) => void;
 }
-
-const EmojiPickerPlugin = ({
-  setIsEmojiPickerOpen,
-  isOpen,
-}: {
-  setIsEmojiPickerOpen: (open: boolean) => void;
-  isOpen: boolean;
-}) => {
-  const [editor] = useLexicalComposerContext();
-
-  const insertEmoji = (emojiData: EmojiClickData) => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if (selection) {
-        const emojiNode = $createEmojiNode(
-          emojiData.emoji,
-          emojiData.unified,
-          emojiData.names || [],
-          emojiData.imageUrl,
-        );
-        $insertNodes([emojiNode]);
-      }
-    });
-
-    setIsEmojiPickerOpen(false);
-  };
-
-  return (
-    <div
-      className="absolute bottom-full mb-2 left-4 rounded-lg z-10 overflow-y-auto "
-      role="dialog"
-      aria-modal="true"
-      aria-label="Выбор эмодзи"
-    >
-      <EmojiPicker
-        open={isOpen}
-        theme={Theme.DARK}
-        onEmojiClick={insertEmoji}
-        searchPlaceholder="Поиск"
-        defaultSkinTone={SkinTones.MEDIUM}
-      />
-    </div>
-  );
-};
-
-const KeyboardSendPlugin = ({
-  onSend,
-  isEmpty,
-}: {
-  onSend: (editor: LexicalEditor) => void;
-  isEmpty: boolean;
-}) => {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    return editor.registerCommand(
-      KEY_DOWN_COMMAND,
-      (event: KeyboardEvent) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          if (!isEmpty) {
-            onSend(editor);
-          }
-          return true;
-        }
-        return false;
-      },
-      1,
-    );
-  }, [editor, onSend, isEmpty]);
-
-  return null;
-};
-
-const SendButton = ({
-  onClick,
-  isEmpty,
-}: {
-  onClick: (editor: LexicalEditor) => void;
-  isEmpty: boolean;
-}) => {
-  const [editor] = useLexicalComposerContext();
-
-  return (
-    <button
-      type="button"
-      disabled={isEmpty}
-      className={`ml-2 p-2 rounded-full transition-colors ${
-        isEmpty
-          ? "bg-gray-600 cursor-not-allowed"
-          : "bg-green-600 hover:bg-green-700"
-      }`}
-      onClick={() => onClick(editor)}
-    >
-      <SendMessageIcon width={24} height={24} />
-    </button>
-  );
-};
-
-const EmojiDeletionPlugin = () => {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    return editor.registerCommand(
-      KEY_BACKSPACE_COMMAND,
-      (event: KeyboardEvent) => {
-        const selection = $getSelection();
-
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-          return false;
-        }
-
-        const anchor = selection.anchor;
-        if (anchor.offset !== 0) {
-          return false;
-        }
-
-        const node = anchor.getNode();
-        const prevSibling = node.getPreviousSibling();
-
-        if ($isEmojiNode(prevSibling)) {
-          event.preventDefault();
-          prevSibling.remove();
-          return true;
-        }
-
-        return false;
-      },
-      1, // Use a high priority
-    );
-  }, [editor]);
-
-  return null;
-};
 
 export const LexicalMessageInput = ({
   handleSendMessage,
@@ -349,11 +210,13 @@ export const LexicalMessageInput = ({
               <KeyboardSendPlugin onSend={handleSendClick} isEmpty={isEmpty} />
               <RichTextPlugin
                 contentEditable={
-                  <ContentEditable
-                    className="w-full p-2 text-white md:text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-6"
-                    data-placeholder="Введите сообщение..."
-                    ref={editorRef}
-                  />
+                  <div className="flex-1">
+                    <ContentEditable
+                      className="w-full p-2 text-white md:text-xl resize-none outline-none max-h-[200px] overflow-y-auto min-h-6"
+                      data-placeholder="Введите сообщение..."
+                      ref={editorRef}
+                    />
+                  </div>
                 }
                 placeholder={null}
                 ErrorBoundary={() => null}
@@ -362,6 +225,7 @@ export const LexicalMessageInput = ({
                 <EmojiPickerPlugin
                   setIsEmojiPickerOpen={setIsEmojiPickerOpen}
                   isOpen={isEmojiPickerOpen}
+                  editorRef={editorRef}
                 />
               )}
               {showFormattingToolbar && (
