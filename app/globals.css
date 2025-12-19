@@ -8,12 +8,9 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
 }
 
 /* Custom scrollbar styles */
@@ -94,19 +91,6 @@ html {
   background-color: #3b82f6;
 }
 
-.emojiImage {
-  display: inline-block;
-  position: relative;
-  width: 1.3em;
-  height: 1.3em;
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: center;
-  vertical-align: middle;
-  user-select: text;
-  caret-color: #fafafa;
-  color: transparent;
-}
 
 .emoji-node {
   display: inline-block;

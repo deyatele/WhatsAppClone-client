@@ -98,7 +98,7 @@ export const FormattingToolbarPlugin = ({
   return (
     <div
       ref={toolbarRef}
-      className="absolute bg-gray-700/75 rounded-2xl p-4 shadow-lg z-20 flex space-x-1 transform -translate-x-1/2"
+      className="absolute bg-gray-800/90 rounded-2xl p-4 shadow-lg z-20 flex space-x-1 transform -translate-x-1/2"
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
@@ -107,8 +107,8 @@ export const FormattingToolbarPlugin = ({
     >
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
-          isBold ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
+        className={`p-1 rounded transition-colors text-white cursor-pointer ${
+          isBold ? "bg-blue-600" : "hover:bg-gray-700 "
         }`}
         onClick={() => formatText("bold")}
       >
@@ -116,8 +116,8 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
-          isItalic ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
+        className={`p-1 rounded transition-colors text-white cursor-pointer ${
+          isItalic ? "bg-blue-600" : "hover:bg-gray-700"
         }`}
         onClick={() => formatText("italic")}
       >
@@ -125,10 +125,8 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
-          isStrikethrough
-            ? "bg-blue-600 text-white"
-            : "hover:bg-gray-700 text-white"
+        className={`p-1 rounded transition-colors text-white cursor-pointer ${
+          isStrikethrough ? "bg-blue-600" : "hover:bg-gray-700"
         }`}
         onClick={() => formatText("strikethrough")}
       >
@@ -136,8 +134,8 @@ export const FormattingToolbarPlugin = ({
       </button>
       <button
         type="button"
-        className={`p-1 rounded transition-colors opacity-100 cursor-pointer ${
-          isCode ? "bg-blue-600 text-white" : "hover:bg-gray-700 text-white"
+        className={`p-1 rounded transition-colors  cursor-pointer text-white ${
+          isCode ? "bg-blue-600" : "hover:bg-gray-700 "
         }`}
         onClick={() => formatText("code")}
       >

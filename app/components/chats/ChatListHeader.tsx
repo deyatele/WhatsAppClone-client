@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { addChat, nameProgect } from "../../constants/constant.project";
 import { Dropdown } from "../ui/Dropdown";
@@ -34,7 +36,17 @@ export const ChatListHeader = ({
       <div className="p-4 border-b border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold cursor-default whitespace-nowrap">
-            {nameProgect}
+            <Link href={"/"}>
+              <Image
+                src="/logo.png"
+                width={30}
+                height={30}
+                alt="logo"
+                priority
+                className="inline mr-2"
+              />
+              {nameProgect}
+            </Link>
           </h2>
           <div className="flex items-center gap-3">
             <div className="group relative">
