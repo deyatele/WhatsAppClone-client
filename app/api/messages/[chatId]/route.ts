@@ -48,7 +48,7 @@ export async function GET(
   }
 
   if (!chatId) {
-    return new NextResponse("Chat ID is required", { status: 400 });
+    return new NextResponse("Не указан идентификатор чата.", { status: 400 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -95,7 +95,7 @@ export async function GET(
 
     return responseData;
   } catch (error) {
-    log(`ERROR: Failed to fetch messages: ${error}`);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    log(`ERROR: Не удалось получить сообщения.: ${error}`);
+    return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
   }
 }

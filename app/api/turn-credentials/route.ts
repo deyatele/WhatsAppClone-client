@@ -18,6 +18,7 @@ export async function GET(request: Request) {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+    console.log(accessToken)
     if (!response.ok) {
       throw new Error(
         `Failed to fetch TURN credentials: ${response.statusText}`,

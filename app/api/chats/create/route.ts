@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
   try {
     // Получаем тело запроса от клиента
     const body = await req.json();
+    if (!body.ovnerUserId) return NextResponse.json(null);
+
     const backendResponse = await fetch(`${API_URL}/chats`, {
       method: "POST",
       headers: {
@@ -29,12 +31,14 @@ export async function POST(req: NextRequest) {
         inviteToken: body.inviteToken,
       }),
     });
-    if (!body.ovnerUserId) return NextResponse.json(null);
-    const data = await backendResponse.json();
-    if (!backendResponse.ok) {
-      return NextResponse.json(data, { status: backendResponse.status });
-    }
 
+    const data = await backendResponse.json();
+    if (data.error)
+      return NextResponse.json(
+        { status: data.error, message: data.message },
+        { status: data.statusCode },
+      );
+    
     return NextResponse.json(data);
   } catch (error) {
     console.error("Ошибка при проксировании запроса на создание чата:", error);

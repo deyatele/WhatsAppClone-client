@@ -2,8 +2,8 @@ import { z } from "zod";
 import {
   type AuthResponse,
   authResponseSchema,
+  chatCreateShemaResponse,
   type ChatResponse,
-  chatShemaResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -15,6 +15,7 @@ import {
   type KeyRecord,
   keysRecordSchema,
 } from "./crypto/types/keys.types";
+import { log } from "./log";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
@@ -139,20 +140,28 @@ export const chatApi = {
     ovnerUserId: string | null,
     inviteToken: string | null,
   ): Promise<ChatResponse | null> {
-    const fetchOptions: RequestInit & { agent?: object } = {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({ ovnerUserId, inviteToken }),
-    };
-
-    const response = await fetch(`${BASE_URL}/api/chats/create`, fetchOptions);
-
     if (!ovnerUserId) return null;
+    try {
+      const fetchOptions: RequestInit & { agent?: object } = {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ ovnerUserId, inviteToken }),
+      };
 
-    const jsonData = await response.json();
-    return chatShemaResponse.parse(jsonData);
+      const response = await fetch(
+        `${BASE_URL}/api/chats/create`,
+        fetchOptions,
+      );
+      const jsonData = await response.json();
+      if (!response.ok) throw new Error(jsonData.message);
+      
+      return chatCreateShemaResponse.parse(jsonData);
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   },
 
   async getInviteToken(): Promise<{ id: string }> {

@@ -97,15 +97,10 @@ export default function Home() {
     setIsMounted(true);
   }, []);
   return (
-    <main className="flex h-screen overflow-hidden w-full">
+    <main className="flex h-full overflow-hidden w-full">
       <StoreInitializer chats={chats} />
       <div
-        className={`
-          w-full md:w-1/3
-          absolute md:relative
-          h-full z-20
-          transition-transform duration-300 ease-in-out
-          ${isChatListOpen ? "translate-x-0" : "-translate-x-full"}
+        className={`w-full h-full md:w-1/3 absolute md:relative z-20 transition-transform duration-300 ease-in-out ${isChatListOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
         `}
       >

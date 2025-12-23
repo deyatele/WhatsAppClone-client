@@ -26,7 +26,7 @@ export default function JoinChatModal({ inviteToken }: JoinChatModalProps) {
       handleActionCreateChat(userInviteId, res.id);
       redirect(`/`);
     } catch (error) {
-      console.error("Не удалось присоединиться к чату:", error);
+      console.error(error);
       redirect("/");
     }
   };

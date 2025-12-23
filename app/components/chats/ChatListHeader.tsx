@@ -43,7 +43,7 @@ export const ChatListHeader = ({
                 height={30}
                 alt="logo"
                 priority
-                className="inline mr-2"
+                className="inline-block mr-2 w-[30px] h-[30px]"
               />
               {nameProgect}
             </Link>
