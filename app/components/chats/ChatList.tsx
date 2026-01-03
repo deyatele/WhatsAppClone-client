@@ -15,7 +15,7 @@ import { ChatListEmptyState } from "./ChatListEmptyState";
 import { ChatListHeader } from "./ChatListHeader";
 import { ChatListLoadingState } from "./ChatListLoadingState";
 
-const isDebug = process.env.NODE_ENV === "development";
+const isDebug = process.env.NEXT_PUBLIC_DEBUGING?.toLocaleLowerCase() === "true";
 
 const ChatListComponent = () => {
   const chats = useChatStore((state) => state.chats);
@@ -68,7 +68,7 @@ const ChatListComponent = () => {
         />
 
         {/* Чаты пользователя */}
-        <div className="overflow-y flex-1">
+        <div className="overflow-y-auto flex-1">
           {showLoading ? (
             <ChatListLoadingState />
           ) : showEmptyState ? (

@@ -63,7 +63,6 @@ export const useChat = () => {
       try {
         privateKey = await getPrivateKey(password, userId);
       } catch (e) {
-        console.log();
         log(`ERROR: ${e}`);
         return [];
       }

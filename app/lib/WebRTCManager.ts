@@ -362,7 +362,6 @@ class WebRTCManager {
     try {
       const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
-      console.log("call:start");
       this.socket.emit("call:start", { to: toUserId, sdp: offer });
 
       // Также отправляем низкоуровневое предложение для сигнализации, как показано в client.js

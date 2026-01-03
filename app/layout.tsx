@@ -54,13 +54,19 @@ export default async function RootLayout({
 }) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("accessToken")?.value;
-  const userId = await getUserIdFromToken(accessToken || "");
+  const token = accessToken && accessToken.length > 0 ? accessToken : undefined;
+  let userId: string | null = null;
+  try {
+    userId = await getUserIdFromToken(accessToken || null);
+  } catch (error) {
+    console.error("Failed to get userId:", error);
+  }
   return (
     <html lang="ru">
       <body>
         <ToastProvider>
           <UserProvider userId={userId}>
-            <SocketProvider token={accessToken}>
+            <SocketProvider token={token}>
               <AppWrapper>{children}</AppWrapper>
             </SocketProvider>
           </UserProvider>

@@ -81,7 +81,6 @@ async function getRecord(id: string): Promise<KeyRecord | null> {
     r.onsuccess = () => {
       if (!r.result) {
         getMyKeys(id).then((keys) => {
-          console.log(keys);
           if (keys) {
             return res(keys);
           } else {
@@ -92,7 +91,6 @@ async function getRecord(id: string): Promise<KeyRecord | null> {
     };
     r.onerror = async () => {
       getMyKeys(id).then((keys) => {
-        console.log(keys);
         if (keys) {
           return res(keys);
         } else {

@@ -73,10 +73,10 @@ export default function Home() {
   }, [activeChatId, isChatListOpen, isMounted, setIsChatList]);
 
   useEffect(() => {
-    if (isMounted && !password) {
+    if (isMounted && !password && !isPasswordModalOpen) {
       setIsPasswordModalOpen(true);
     }
-  }, [isMounted, password]);
+  }, [isMounted, password, isPasswordModalOpen]);
 
   useEffect(() => {
     if (!password || !isMounted) return;

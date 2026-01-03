@@ -21,13 +21,13 @@ export function DeleteModal({
         <h2 className="text-lg font-bold mb-4">Удалить сообщение?</h2>
         <div className="flex justify-end space-x-3 mt-4">
           <button
-            className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white transition-colors duration-200"
+            className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-700 transition-colors duration-200"
             onClick={onClose}
           >
             Отмена
           </button>
           <button
-            className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors duration-200"
+            className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white transition-colors duration-200"
             onClick={() => {
               onDeleteForMe();
               onClose();
@@ -77,13 +77,13 @@ export function DeleteModal({
 
       <div className="flex justify-end space-x-3 mt-4">
         <button
-          className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white transition-colors duration-200"
+          className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-700 transition-colors duration-200"
           onClick={onClose}
         >
           Отмена
         </button>
         <button
-          className="px-6 py-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors duration-200"
+          className="px-6 py-2 rounded-full text-green-500 border border-green-500 hover:bg-green-500 hover:text-white ransition-colors duration-200"
           onClick={() => {
             onDeleteForEveryone(forEveryone);
             onClose();
