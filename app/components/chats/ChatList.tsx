@@ -15,7 +15,8 @@ import { ChatListEmptyState } from "./ChatListEmptyState";
 import { ChatListHeader } from "./ChatListHeader";
 import { ChatListLoadingState } from "./ChatListLoadingState";
 
-const isDebug = process.env.NEXT_PUBLIC_DEBUGING?.toLocaleLowerCase() === "true";
+const isDebug =
+  process.env.NEXT_PUBLIC_DEBUGING?.toLocaleLowerCase() === "true";
 
 const ChatListComponent = () => {
   const chats = useChatStore((state) => state.chats);

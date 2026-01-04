@@ -10,7 +10,7 @@ const participanChatCreatetSchema = z.object({
   id: z.string(),
   chatId: z.string(),
   userId: z.string(),
-  user: userBaseSchema
+  user: userBaseSchema,
 });
 
 const chatSchema = z.object({
@@ -44,6 +44,8 @@ export const chatCreateShemaResponse = z.object({
   updatedAt: timestampSchema,
   participants: z.array(participanChatCreatetSchema),
 });
+
+export type ChatCreateResponse = z.infer<typeof chatCreateShemaResponse>;
 
 export const chatsResponseSchema = z.array(chatShemaResponse);
 

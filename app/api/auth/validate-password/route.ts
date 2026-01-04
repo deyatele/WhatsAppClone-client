@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = process.env.API_URL;
   const fetchOptions: RequestInit & { agent?: object } = {
     method: "POST",
     body: JSON.stringify({ password }),

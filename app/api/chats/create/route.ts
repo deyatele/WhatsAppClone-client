@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.API_URL;
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         { status: data.error, message: data.message },
         { status: data.statusCode },
       );
-    
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Ошибка при проксировании запроса на создание чата:", error);

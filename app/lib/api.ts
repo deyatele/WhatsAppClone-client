@@ -2,8 +2,9 @@ import { z } from "zod";
 import {
   type AuthResponse,
   authResponseSchema,
-  chatCreateShemaResponse,
+  type ChatCreateResponse,
   type ChatResponse,
+  chatCreateShemaResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -15,9 +16,8 @@ import {
   type KeyRecord,
   keysRecordSchema,
 } from "./crypto/types/keys.types";
-import { log } from "./log";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.API_URL;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export type RegisterDto = {
@@ -139,7 +139,7 @@ export const chatApi = {
   async createChat(
     ovnerUserId: string | null,
     inviteToken: string | null,
-  ): Promise<ChatResponse | null> {
+  ): Promise<ChatCreateResponse | null> {
     if (!ovnerUserId) return null;
     try {
       const fetchOptions: RequestInit & { agent?: object } = {
@@ -156,7 +156,7 @@ export const chatApi = {
       );
       const jsonData = await response.json();
       if (!response.ok) throw new Error(jsonData.message);
-      
+
       return chatCreateShemaResponse.parse(jsonData);
     } catch (error) {
       console.error(error);
@@ -200,6 +200,7 @@ export const chatApi = {
     cursor?: string,
     limit = 15,
   ): Promise<{ messages: MessageResponse[]; nextCursor: string | null }> {
+
     const url = new URL(`/api/messages/${chatId}`, window.location.origin);
     url.searchParams.append("limit", String(limit));
     if (cursor) {

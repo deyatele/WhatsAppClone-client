@@ -106,7 +106,7 @@ npm install
 
 ```env
 # URL вашего API-сервера
-NEXT_PUBLIC_API_URL=https://your-api-domain.com
+API_URL=https://your-api-domain.com
 
 # JWT секрет для верификации токенов
 JWT_SECRET=your_jwt_secret_here

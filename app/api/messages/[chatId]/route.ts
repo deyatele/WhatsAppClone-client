@@ -56,7 +56,7 @@ export async function GET(
   const limit = searchParams.get("limit") || "15";
 
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = process.env.API_URL;
 
     const url = new URL(`${API_URL}/messages/chat/${chatId}`);
     url.searchParams.append("limit", limit);

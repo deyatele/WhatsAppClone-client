@@ -7,12 +7,15 @@
 }
 
 body {
-  min-height: 100dvh; 
+  min-height: 100dvh;
   height: 100dvh;
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
+  background: linear-gradient(
+      to bottom,
       transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
 }
 
 /* Custom scrollbar styles */
@@ -92,7 +95,6 @@ html {
 .bg-blue-600 {
   background-color: #3b82f6;
 }
-
 
 .emoji-node {
   display: inline-block;

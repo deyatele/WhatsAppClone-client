@@ -107,7 +107,7 @@ export const ChatHeader = ({ otherUser, lastMessage }: ChatHeaderProps) => {
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600 flex items-center"
               title="Поиск по чату"
             >
-               <SearchIcon className="w-4 h-4 mr-2" />
+              <SearchIcon className="w-4 h-4 mr-2" />
               Поиск
             </button>
           </li>
