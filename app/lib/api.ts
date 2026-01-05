@@ -17,7 +17,10 @@ import {
   keysRecordSchema,
 } from "./crypto/types/keys.types";
 
-const API_URL = process.env.API_URL;
+const API_URL =
+  process.env.NODE_ENV === "development"
+    ? process.env.API_URL_DEV
+    : process.env.API_URL_PROD;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export type RegisterDto = {
@@ -200,7 +203,6 @@ export const chatApi = {
     cursor?: string,
     limit = 15,
   ): Promise<{ messages: MessageResponse[]; nextCursor: string | null }> {
-
     const url = new URL(`/api/messages/${chatId}`, window.location.origin);
     url.searchParams.append("limit", String(limit));
     if (cursor) {

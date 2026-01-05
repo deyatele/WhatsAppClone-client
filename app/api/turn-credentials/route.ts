@@ -12,7 +12,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const API_URL = process.env.API_URL;
+    const API_URL =
+      process.env.NODE_ENV === "development"
+        ? process.env.API_URL_DEV
+        : process.env.API_URL_PROD;
     const response = await fetch(`${API_URL}/turn-credentials/${userId}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,

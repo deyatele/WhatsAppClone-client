@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const API_URL = process.env.API_URL;
+  const API_URL =
+    process.env.NODE_ENV === "development"
+      ? process.env.API_URL_DEV
+      : process.env.API_URL_PROD;
   const fetchOptions: RequestInit & { agent?: object } = {
     method: "POST",
     body: JSON.stringify({ password }),

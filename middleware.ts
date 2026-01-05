@@ -82,7 +82,10 @@ export async function middleware(request: NextRequest) {
         ),
       );
     } else {
-      const API_URL = process.env.API_URL;
+      const API_URL =
+        process.env.NODE_ENV === "development"
+          ? process.env.API_URL_DEV
+          : process.env.API_URL_PROD;
       const result = await fetch(`${API_URL}/users/me`, {
         method: "GET",
         headers: {

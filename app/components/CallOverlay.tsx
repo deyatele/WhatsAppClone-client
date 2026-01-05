@@ -62,7 +62,6 @@ export const CallOverlay: FC<CallOverlayProps> = ({
     }
     return () => clearTimeout(timer);
   }, [isControlsVisible, callState]);
-  console.log(callState);
   useEffect(() => {
     // Показать элементы управления при установлении вызова
     if (
