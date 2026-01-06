@@ -43,7 +43,7 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       auth: { token },
       transports: ["websocket"],
       secure: true,
-      rejectUnauthorized: process.env.NODE_ENV !== "development",
+      // rejectUnauthorized: process.env.NODE_ENV !== "development",
     });
     newSocket.on("connect", () => {
       log(`DEBUG:✅ WebSocket подключен: ${newSocket.id}`);

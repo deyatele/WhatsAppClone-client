@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
   };
 
   // In development, Node.js might reject self-signed certificates.
-  if (process.versions?.node && process.env.NODE_ENV === "development") {
+  /* if (process.versions?.node && process.env.NODE_ENV === "development") {
     const https = await import("node:https");
     fetchOptions.agent = new https.Agent({
       rejectUnauthorized: false,
     });
-  }
+  } */
 
   try {
     const apiResponse = await fetch(

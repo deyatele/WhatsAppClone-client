@@ -3,8 +3,8 @@ import {
   type AuthResponse,
   authResponseSchema,
   type ChatCreateResponse,
-  type ChatResponse,
   chatCreateShemaResponse,
+  type ChatResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -17,11 +17,15 @@ import {
   keysRecordSchema,
 } from "./crypto/types/keys.types";
 
+const nodeEnv = process.env.NODE_ENV || "development";
+
 const API_URL =
-  process.env.NODE_ENV === "development"
+  nodeEnv === "development"
     ? process.env.API_URL_DEV
     : process.env.API_URL_PROD;
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const BASE_URL = nodeEnv === "development"
+    ? process.env.NEXT_PUBLIC_BASE_URL_DEV
+    : process.env.NEXT_PUBLIC_BASE_URL_PROD;
 
 export type RegisterDto = {
   phone: string;
@@ -48,12 +52,13 @@ export async function fetchApi<T = unknown>(
       ...options.headers,
     },
   };
-  if (process.versions?.node && process.env.NODE_ENV === "development") {
+  /* if (process.versions?.node && process.env.NODE_ENV === "development") {
     const https = await import("node:https");
     fetchOptions.agent = new https.Agent({
       rejectUnauthorized: false,
     });
-  }
+  } */
+  console.log(`${API_URL}${endpoint}`);
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
   let parsed: unknown = null;
   try {
