@@ -116,10 +116,8 @@ export async function fetchPrivateKeyBackupAction(accessToken?: string) {
   if (!accessToken) return null;
 
   try {
-    const API_URL =
-      process.env.NODE_ENV === "development"
-        ? process.env.API_URL_DEV
-        : process.env.API_URL_PROD;
+    const API_URL = process.env.API_URL;
+
     const targetUrl = `${API_URL}/users/me/privateKeyBackup`;
 
     const res = await fetch(targetUrl, {
@@ -148,10 +146,8 @@ export async function updateMyKeys(
   token: string,
   id: string,
 ) {
-  const API_URL =
-    process.env.NODE_ENV === "development"
-      ? process.env.API_URL_DEV
-      : process.env.API_URL_PROD;
+  const API_URL = process.env.API_URL;
+
   const targetUrl = `${API_URL}/users/${id}/keys`;
   try {
     const res = await fetch(targetUrl, {
@@ -189,10 +185,8 @@ export async function getChatsAction() {
 }
 
 export async function getMyKeys(token: string, id: string) {
-  const API_URL =
-    process.env.NODE_ENV === "development"
-      ? process.env.API_URL_DEV
-      : process.env.API_URL_PROD;
+  const API_URL = process.env.API_URL;
+
   const targetUrl = `${API_URL}/users/${id}/keysBackup`;
   try {
     const res = await fetch(targetUrl, {

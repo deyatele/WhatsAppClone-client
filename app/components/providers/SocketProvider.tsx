@@ -34,10 +34,8 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
   const { decryptedMessage } = useChat();
   useEffect(() => {
     if (!token || !userId || !password) return;
-    const API_URL =
-      (process.env.NODE_ENV === "development"
-        ? process.env.NEXT_PUBLIC_API_URL
-        : process.env.NEXT_PUBLIC_BASE_URL_PROD) || "http://127.0.0.1:3001";
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
+
     const socketUrl = new URL(API_URL).origin;
     const newSocket = io(socketUrl, {
       auth: { token },

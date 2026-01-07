@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? process.env.API_URL_DEV
-    : process.env.API_URL_PROD;
+const API_URL = process.env.API_URL;
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();

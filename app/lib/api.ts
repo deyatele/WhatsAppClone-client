@@ -3,8 +3,8 @@ import {
   type AuthResponse,
   authResponseSchema,
   type ChatCreateResponse,
-  chatCreateShemaResponse,
   type ChatResponse,
+  chatCreateShemaResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -17,15 +17,9 @@ import {
   keysRecordSchema,
 } from "./crypto/types/keys.types";
 
-const nodeEnv = process.env.NODE_ENV || "development";
+const API_URL = process.env.API_URL;
 
-const API_URL =
-  nodeEnv === "development"
-    ? process.env.API_URL_DEV
-    : process.env.API_URL_PROD;
-const BASE_URL = nodeEnv === "development"
-    ? process.env.NEXT_PUBLIC_BASE_URL_DEV
-    : process.env.NEXT_PUBLIC_BASE_URL_PROD;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export type RegisterDto = {
   phone: string;
