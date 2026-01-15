@@ -18,7 +18,7 @@ interface CallOverlayProps {
 export const CallOverlay: FC<CallOverlayProps> = ({
   participantName = "Собеседник",
 }) => {
-  const { callState, localStream, remoteStream } = useChatStore();
+  const { callState, localStream, remoteStream, isMicOn, isVideoOn, isScreenShareOn } = useChatStore();
   const [isControlsVisible, setIsControlsVisible] = useState(true);
   const [isSwapped, setIsSwapped] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,10 @@ export const CallOverlay: FC<CallOverlayProps> = ({
             onClick={handleDecline}
             className="flex flex-col items-center text-white gap-y-2"
           >
-            <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+            <div
+              className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center transform transition-transform duration-150
+    active:scale-95"
+            >
               <TelephoneXIcon className="w-8 h-8" />
             </div>
             <p>Отклонить</p>
@@ -111,9 +114,12 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={handleAccept}
-            className="flex flex-col items-center text-white gap-y-2"
+            className="flex flex-col items-center text-white gap-y-2 "
           >
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
+            <div
+              className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center transform transition-transform duration-150
+    active:scale-95"
+            >
               <TelephoneIcon className="w-8 h-8" />
             </div>
             <p>Принять</p>
@@ -171,7 +177,7 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={() => webRTCManager.toggleVideo()}
-            className="p-3 sm:p-4 bg-gray-600/70 rounded-full text-white"
+            className={`p-3 sm:p-4 bg-gray-600/70 rounded-full text-white ${isVideoOn && `border-2 border-emerald-600`} transform transition-transform duration-150 active:scale-95 cursor-pointer`}
           >
             <VideoCameraIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
@@ -179,7 +185,7 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={() => webRTCManager.toggleAudio()}
-            className="p-3 sm:p-4 bg-gray-600/70 rounded-full text-white"
+            className={`p-3 sm:p-4 bg-gray-600/70 rounded-full text-white ${isMicOn && `border-2 border-emerald-600`} transform transition-transform duration-150 active:scale-95 cursor-pointer`}
           >
             <MicIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
@@ -187,7 +193,8 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={() => webRTCManager.switchCamera()}
-            className="p-3 sm:p-4 bg-gray-600/70 rounded-full text-white"
+            className="p-3 sm:p-4 bg-gray-600/70 rounded-full text-white transform transition-transform duration-150
+    active:scale-95 cursor-pointer"
           >
             <CameraRotateIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
@@ -195,7 +202,7 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={() => webRTCManager.toggleScreenShare()}
-            className="p-3 sm:p-4 bg-gray-600/70 rounded-full text-white"
+            className={`p-3 sm:p-4 bg-gray-600/70 rounded-full text-white ${isScreenShareOn && `border-2 border-emerald-600`} transform transition-transform duration-150 active:scale-95 cursor-pointer`}
           >
             <ScreenShareIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
@@ -203,7 +210,8 @@ export const CallOverlay: FC<CallOverlayProps> = ({
           <button
             type="button"
             onClick={() => webRTCManager.closeConnection()}
-            className="p-3 sm:p-4 bg-red-600 rounded-full text-white"
+            className="p-3 sm:p-4 bg-red-600 rounded-full text-white transform transition-transform duration-150
+    active:scale-95 cursor-pointer"
           >
             <TelephoneXIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>

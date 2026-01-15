@@ -21,6 +21,9 @@ interface ChatState {
   isChatListOpen: boolean;
   initialChatsLoaded: boolean;
   pendingChats: Chat[] | null;
+  isMicOn: boolean;
+  isVideoOn: boolean;
+  isScreenShareOn: boolean;
 
   // Действия
   toggleChatList: () => void;
@@ -84,6 +87,9 @@ export const useChatStore = create<ChatState>((set, _get) => ({
   isChatListOpen: true,
   initialChatsLoaded: false,
   pendingChats: null,
+  isMicOn:true,
+  isVideoOn: true,
+  isScreenShareOn: false,
 
   toggleChatList: () =>
     set((state) => ({ isChatListOpen: !state.isChatListOpen })),

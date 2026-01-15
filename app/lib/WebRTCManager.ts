@@ -595,6 +595,7 @@ class WebRTCManager {
     if (!this.localStream) return;
     this.localStream.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
+      useChatStore.getState().isMicOn = track.enabled;
       log(`DEBUG:🎤 Микрофон ${track.enabled ? "ВКЛ" : "ВЫКЛ"}`);
     });
   }
@@ -603,6 +604,7 @@ class WebRTCManager {
     if (!this.localStream) return;
     this.localStream.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
+      useChatStore.getState().isVideoOn = track.enabled;
       log(`DEBUG:🎬 Камера ${track.enabled ? "ВКЛ" : "ВЫКЛ"}`);
     });
   }
@@ -668,6 +670,7 @@ class WebRTCManager {
         );
       }
     }
+    useChatStore.getState().isScreenShareOn = this.isScreenSharing;
   }
 }
 
