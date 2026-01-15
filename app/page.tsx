@@ -23,6 +23,8 @@ export default function Home() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isModalInviteOpen, setIsModalInviteOpen] = useState(false);
+
   const handlePasswordSubmit = useCallback(
     async (newPassword: string) => {
       if (!newPassword.trim()) {
@@ -81,6 +83,10 @@ export default function Home() {
   useEffect(() => {
     if (!password || !isMounted) return;
 
+    if (invite) {
+      setIsModalInviteOpen(true);
+    }
+
     const fetchData = async () => {
       useChatStore.getState().setIsLoadingChats(true);
       try {
@@ -92,7 +98,8 @@ export default function Home() {
       }
     };
     fetchData();
-  }, [password, isMounted, setUserId]);
+  }, [password, isMounted, setUserId, invite]);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -109,8 +116,13 @@ export default function Home() {
       <div className="w-full md:w-2/3">
         <ChatWindow />
       </div>
-      <Modal isOpen={Boolean(invite) ?? false} onClose={() => {}}>
-        {invite && <JoinChatModal inviteToken={invite} />}
+      <Modal isOpen={isModalInviteOpen} onClose={() => {}}>
+        {invite && (
+          <JoinChatModal
+            inviteToken={invite}
+            closeModale={() => setIsModalInviteOpen(false)}
+          />
+        )}
       </Modal>
       <Modal isOpen={isPasswordModalOpen} onClose={() => {}}>
         <PasswordModale

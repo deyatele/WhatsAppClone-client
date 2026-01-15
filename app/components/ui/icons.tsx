@@ -418,3 +418,47 @@ export const HamburgerIcon = (props: React.SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
+
+export const EyeIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    /* width="800px"
+    height="800px" */
+    viewBox="0 0 16 16"
+    xmlns="http://www.w3.org/2000/svg"
+    version="1.1"
+    fill="none"
+    stroke="currentcolor "
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="1.5"
+    {...props}
+  >
+    <path d="m1.75 8s2-4.25 6.25-4.25 6.25 4.25 6.25 4.25-2 4.25-6.25 4.25-6.25-4.25-6.25-4.25z" />
+    <circle cx="8" cy="8" r="1.25" fill="currentcolor" />
+  </svg>
+);
+
+export const EyeSlashIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    width="800px"
+    height="800px"
+    viewBox="0 0 16 16"
+    xmlns="http://www.w3.org/2000/svg"
+    version="1.1"
+    fill="none"
+    stroke="currentcolor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="1.5"
+    {...props}
+  >
+    <path d="m8.75 3.75c3.5.5 5.5 4.25 5.5 4.25s-.5 1.25-1.5 2.25m-2.5 1.5c-6 2-8.5-3.75-8.5-3.75s.5-1.75 3-3.25" />
+    <path
+      d="m8.625 9.08253a1.25 1.25 0 0 1 -1.64894 -.36556 1.25 1.25 0 0 1 .22046 -1.67453l.80348.95756z"
+      fill="currentcolor "
+    />
+    <path d="m3.75 1.75 8.5 12.5" />
+  </svg>
+);
+
+

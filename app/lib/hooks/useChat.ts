@@ -370,10 +370,10 @@ export const useChat = () => {
   }, []);
   const getUserInviteChat = useCallback(async (inviteToken: string) => {
     try {
-      const { userId } = await chatApi.getUserInviteChat(inviteToken);
-      return userId;
+      const res = await chatApi.getUserInviteChat(inviteToken);
+      return res?.userId;
     } catch (error) {
-      log(`ERROR: ${error}`);
+      return null;
     }
   }, []);
 

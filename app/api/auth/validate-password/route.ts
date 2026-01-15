@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
   const token = cookieStore.get("accessToken")?.value;
   const inviteToken = request.nextUrl.searchParams.get("invite");
+
   if (!token) {
     NextResponse.json(
       { message: "Токен авторизации не найден" },

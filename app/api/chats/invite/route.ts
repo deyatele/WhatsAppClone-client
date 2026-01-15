@@ -23,11 +23,10 @@ export async function GET() {
       },
     });
     const data = await backendResponse.json();
-
     if (!backendResponse.ok) {
       return NextResponse.json(data, { status: backendResponse.status });
     }
-
+    
     return NextResponse.json(data);
   } catch (error) {
     console.error("Ошибка при проксировании запроса на создание чата:", error);

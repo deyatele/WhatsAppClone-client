@@ -62,7 +62,7 @@ export const ChatListHeader = ({
               </span>
             </div>
             <Dropdown
-              align="left"
+              align="right"
               trigger={
                 <button
                   type="button"

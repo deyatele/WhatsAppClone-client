@@ -3,8 +3,8 @@ import {
   type AuthResponse,
   authResponseSchema,
   type ChatCreateResponse,
-  type ChatResponse,
   chatCreateShemaResponse,
+  type ChatResponse,
   chatsResponseSchema,
   type MessageResponse,
   messagesResponseSchema,
@@ -46,13 +46,7 @@ export async function fetchApi<T = unknown>(
       ...options.headers,
     },
   };
-  /* if (process.versions?.node && process.env.NODE_ENV === "development") {
-    const https = await import("node:https");
-    fetchOptions.agent = new https.Agent({
-      rejectUnauthorized: false,
-    });
-  } */
-  console.log(`${API_URL}${endpoint}`);
+  
   const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
   let parsed: unknown = null;
   try {
@@ -117,11 +111,18 @@ export const authApi = {
   },
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
-    const data = await fetchApi("/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refreshToken }),
-    });
-    return z.object({ accessToken: z.string() }).parse(data);
+    try {
+      const data = await fetchApi("/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken }),
+      });
+      return z.object({ accessToken: z.string() }).parse(data);
+    } catch (error) {
+      throw new Error(
+        "Не удалось обновить токен доступа" +
+          (error instanceof Error ? `: ${error.message}` : "."),
+      );
+    }
   },
 
   async validatePassword(password: string): Promise<void> {
@@ -177,17 +178,21 @@ export const chatApi = {
     return z.object({ id: z.string() }).parse(jsonData);
   },
 
-  async getUserInviteChat(tokenId: string): Promise<{ userId: string }> {
-    const response = await fetch(`${BASE_URL}/api/chats/invite`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({ tokenId }),
-    });
+  async getUserInviteChat(tokenId: string): Promise<{ userId: string } | null> {
+    try {
+      const response = await fetch(`${BASE_URL}/api/chats/invite`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ tokenId }),
+      });
 
-    const jsonData = await response.json();
-    return z.object({ userId: z.string() }).parse(jsonData);
+      const jsonData = await response.json();
+      return z.object({ userId: z.string() }).parse(jsonData);
+    } catch {
+      return null;
+    }
   },
 
   async getMyChats(token: string): Promise<ChatResponse[]> {

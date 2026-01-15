@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import type { ZodObject, ZodRawShape, z } from "zod";
 import { log } from "../lib/log";
 import { useChatStore } from "../lib/store";
+import { EyeIcon, EyeSlashIcon } from "./ui/icons";
 
 interface AuthFormProps<S extends ZodObject<ZodRawShape>> {
   formFields: Array<{
@@ -39,6 +40,11 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
   inviteToken,
 }: AuthFormProps<S>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
 
   type InputValues = z.input<S>;
   type OutputValues = z.output<S>;
@@ -108,14 +114,34 @@ export function AuthForm<S extends ZodObject<ZodRawShape>>({
               >
                 {field.label}
               </label>
-              <input
-                id={field.name}
-                type={field.type}
-                {...register(field.name)}
-                className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                placeholder={field.placeholder}
-                disabled={isSubmitting}
-              />
+              <div className="relative">
+                <input
+                  id={field.name}
+                  {...(field.type === "password"
+                    ? { type: isPasswordVisible ? "text" : "password" }
+                    : { type: field.type })}
+                  {...register(field.name)}
+                  className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder={field.placeholder}
+                  disabled={isSubmitting}
+                />
+                {field.type === "password" && (
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 text-gray-300 hover:text-gray-800 focus:outline-none cursor-pointer"
+                    onClick={togglePasswordVisibility}
+                    aria-label={
+                      isPasswordVisible ? "Скрыть пароль" : "Показать пароль"
+                    }
+                  >
+                    {isPasswordVisible ? (
+                      <EyeSlashIcon width={25} height={25} />
+                    ) : (
+                      <EyeIcon width={25} height={25} />
+                    )}
+                  </button>
+                )}
+              </div>
               {errors[field.name] && (
                 <p className="mt-2 text-sm text-red-500">
                   {errors[field.name]?.message as string}

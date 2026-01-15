@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Loader, LoaderSize } from "../ui/Loader";
+import { EyeIcon, EyeSlashIcon } from "../ui/icons";
 
 interface PasswordModaleProps {
   handleAction: (value: string) => void;
   onClose?: () => void;
   error?: string | null;
   loading: boolean;
+}
+enum typePass {
+  password = 'password',
+  text = 'text'
 }
 
 export default function PasswordModale({
@@ -14,6 +19,11 @@ export default function PasswordModale({
   loading,
 }: PasswordModaleProps) {
   const [value, setValue] = useState<string>("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
 
   return (
     <div className="flex items-center justify-center z-100">
@@ -28,18 +38,26 @@ export default function PasswordModale({
         </p>
         <div className="flex justify-center space-x-4 w-full">
           <form
-            className="w-full"
+            className="w-full relative"
             onSubmit={(e) => {
               e.preventDefault();
               handleAction(value);
             }}
           >
             <input
-              type="password"
+              type={isPasswordVisible ? typePass.text : typePass.password}
               className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
               onChange={(e) => setValue(e.target.value)}
               value={value}
             />
+            <button
+        type="button"
+        className="absolute right-3 top-3 text-gray-300 hover:text-gray-800 focus:outline-none cursor-pointer"
+        onClick={togglePasswordVisibility}
+        aria-label={isPasswordVisible ? 'Скрыть пароль' : 'Показать пароль'}
+      >        
+        {isPasswordVisible ? <EyeSlashIcon width={25} height={25}/> : <EyeIcon width={25} height={25}/>}
+      </button>
             {error ? (
               <p className="mt-2 text-sm text-red-500 text-center">{error}</p>
             ) : (

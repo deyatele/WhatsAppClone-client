@@ -23,21 +23,9 @@ export function getTokenFromRequest(
 /**
  * Обновить access токен, используя refresh токен
  */
-export async function refreshAccessToken(request: NextRequest) {
-  const refreshToken = getTokenFromRequest(request, "refreshToken");
-  const inviteToken = request.nextUrl.searchParams.get("invite");
-
-  if (!refreshToken) {
-    return NextResponse.redirect(
-      new URL(
-        `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-        request.url,
-      ),
-    );
-  }
-
+export async function refreshAccessToken(refreshToken: string): Promise<string | null> { 
   try {
-    const refreshUrl = new URL("/api/auth/refresh", request.url);
+    const refreshUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/refresh`);
     const response = await fetch(refreshUrl, {
       method: "POST",
       headers: {
@@ -51,46 +39,12 @@ export async function refreshAccessToken(request: NextRequest) {
     }
   } catch (e) {
     log(`ERROR: ${e}`);
-    return NextResponse.redirect(
-      new URL(
-        `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-        request.url,
-      ),
-    );
+    return null;
   }
 
   return null;
 }
 
-/**
- * Получить токен, при необходимости обновив его
- */
-export async function getValidToken(request: NextRequest) {
-  let accessToken = getTokenFromRequest(request, "accessToken");
-  const inviteToken = request.nextUrl.searchParams.get("invite");
-
-  if (!accessToken) {
-    const newAccessToken = await refreshAccessToken(request);
-
-    if (newAccessToken && typeof newAccessToken !== "string") {
-      // Если refreshAccessToken вернул NextResponse, возвращаем его
-      return newAccessToken;
-    }
-
-    accessToken = newAccessToken;
-
-    if (!accessToken) {
-      return NextResponse.redirect(
-        new URL(
-          `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-          request.url,
-        ),
-      );
-    }
-  }
-
-  return accessToken;
-}
 
 /**
  * Установить токены в cookies

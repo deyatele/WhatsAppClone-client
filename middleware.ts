@@ -10,27 +10,24 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
-  const isJoinChatRoute = pathname.startsWith("/join");
 
   let accessToken: string | null =
     getTokenFromRequest(request, "accessToken") || null;
   const refreshToken = getTokenFromRequest(request, "refreshToken");
   const inviteToken = request.nextUrl.searchParams.get("invite");
   const idUser = await getUserIdFromToken(accessToken);
+
   if (!idUser) {
     accessToken = null;
   }
 
-  // Обработка пригласительной ссылки
-  if (isJoinChatRoute && inviteToken) {
-    if (!accessToken) {
-      return NextResponse.redirect(
-        new URL(
-          `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-          request.url,
-        ),
-      );
+  if (!isAuthPage && accessToken && idUser) {
+      // Если пользователь не на странице аутентификации и уже авторизован, пропускаем
+      return NextResponse.next();
     }
+
+  if (isAuthPage && accessToken && idUser) {
+    // Если пользователь на странице аутентификации, но уже авторизован, редирект на главную
     return NextResponse.redirect(
       new URL(
         `/${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
@@ -39,58 +36,45 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  if (!accessToken) {
-    if (refreshToken) {
-      const refreshResult = await refreshAccessToken(request);
-      if (refreshResult instanceof NextResponse) {
-        // Если refreshAccessToken вернул NextResponse (редирект), возвращаем его
-        return refreshResult;
-      }
-      accessToken = refreshResult;
 
-      if (!accessToken) {
-        if (!isAuthPage) {
-          return NextResponse.redirect(
-            new URL(
-              `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-              request.url,
-            ),
-          );
-        }
-        return NextResponse.next();
-      }
-    } else {
-      // Если нет ни access, ни refresh токена
-      if (!isAuthPage) {
-        return NextResponse.redirect(
+  if (!isAuthPage && !accessToken && !refreshToken) {
+    // Если пользователь не на странице аутентификации и нет токенов, редирект на логин
+    return NextResponse.redirect(
+      new URL(
+        `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+        request.url,
+      ),
+    );
+  }
+
+  if (isAuthPage && !accessToken && !refreshToken) {
+    // Если пользователь на странице аутентификации и нет токенов, пропускаем
+    return NextResponse.next();
+  }
+  
+
+  if (!isAuthPage && !accessToken && refreshToken) {
+    // Если нет access токена, но есть refresh токен, пробуем обновить
+    try {   
+      const newAccessToken = await refreshAccessToken(refreshToken);
+
+      if (newAccessToken) {
+        accessToken = newAccessToken;
+        const response = NextResponse.next();
+        return setAuthTokens(response, accessToken, refreshToken);
+      } else {
+        // Если не удалось обновить токен, редирект на логин
+        const responce = NextResponse.redirect(
           new URL(
             `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
             request.url,
           ),
         );
-      }
-      return NextResponse.next();
-    }
-  }
-
-  if (accessToken) {
-    if (isAuthPage) {
-      return NextResponse.redirect(
-        new URL(
-          `/${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
-          request.url,
-        ),
-      );
-    } else {
-      const API_URL = process.env.API_URL;
-      const result = await fetch(`${API_URL}/users/me`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (result.status === 404) {
+        responce.cookies.delete("accessToken");
+        responce.cookies.delete("refreshToken");
+        return responce;
+      } 
+    } catch {
         const responce = NextResponse.redirect(
           new URL(
             `/login${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
@@ -101,27 +85,34 @@ export async function middleware(request: NextRequest) {
         responce.cookies.delete("refreshToken");
         return responce;
       }
-    }
-
-    const response = NextResponse.next();
-
-    if (!request.cookies.has("accessToken") || !idUser) {
-      // Получаем refresh токен для установки обоих токенов
-      const refreshToken = getTokenFromRequest(request, "refreshToken");
-      if (refreshToken) {
-        setAuthTokens(response, accessToken, refreshToken);
-      }
-    }
-
-    return response;
   }
 
-  return NextResponse.next();
+  if (isAuthPage && !accessToken && refreshToken) {
+    // Если пользователь на странице аутентификации, но нет access токена, но есть refresh токен, пробуем обновить
+    try {
+      const newAccessToken = await refreshAccessToken(refreshToken);
+
+      if (newAccessToken) {
+        accessToken = newAccessToken;
+        const response = NextResponse.redirect(
+          new URL(
+            `/${typeof inviteToken === "string" ? `?invite=${inviteToken}` : ""}`,
+            request.url,
+          ),
+        );
+        setAuthTokens(response, accessToken, refreshToken);
+        return response;
+      } else return NextResponse.next();
+    }
+    catch {
+      return NextResponse.next();
+    }
+  }
 }
 
-export const config = {
+ export const config = {
   matcher: [
     // Применяем ко всем путям, кроме служебных и файлов API и любых _next путей
     "/((?!api|_next|favicon.ico).*)",
   ],
-};
+}; 

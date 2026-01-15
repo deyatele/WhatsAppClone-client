@@ -16,7 +16,6 @@ export async function POST() {
     const { accessToken } = await authApi.refresh(refreshToken);
     return NextResponse.json({ accessToken });
   } catch (error) {
-    console.error("[API/AUTH/REFRESH] Failed:", error);
     const response = NextResponse.json(
       { message: "Invalid refresh token" },
       { status: 403 },

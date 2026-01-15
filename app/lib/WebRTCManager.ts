@@ -26,14 +26,18 @@ class WebRTCManager {
     if (this.socket === socket) {
       return;
     }
+    if (location.protocol !== "https:" && location.hostname !== "localhost") {
+      log("ERROR: WebRTC требует HTTPS в продакшене!");
+      return;
+    }
 
     log(
       `DEBUG:Инициализация состояния вызова: ${useChatStore.getState().callState}`,
     );
     this.socket = socket;
+
     this._registerSocketListeners();
     log("DEBUG:WebRTCManager инициализирован");
-
     window.addEventListener("beforeunload", this.closeConnection.bind(this));
     window.addEventListener("pagehide", this.closeConnection.bind(this));
   }
@@ -68,9 +72,9 @@ class WebRTCManager {
       const constraints = {
         video: video
           ? {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              deviceId: { exact: this.frontCamera?.deviceId },
+              width: { min: 640, max: 1280 },
+              height: { min: 480, max: 720 },
+              facingMode: this.usingFront ? "user" : "environment",
             }
           : false,
         audio: audio
@@ -100,11 +104,11 @@ class WebRTCManager {
       videoInputs.find((d) => /back|rear|environment/i.test(d.label)) ||
       videoInputs[1] ||
       videoInputs[0];
-    /* log(
+    log(
       `DEBUG:Найдены видеоустройства: 
         front: ${JSON.stringify(this.frontCamera)},
         back: ${JSON.stringify(this.backCamera)}`,
-    ); */
+    );
   }
 
   public async switchCamera() {
@@ -117,10 +121,10 @@ class WebRTCManager {
         this.localStream?.removeTrack(t);
       });
     }
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 500));
 
     // подождать, чтобы Android отпустил камеру
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 500));
     try {
       await this._initVideoDevices();
 
@@ -234,7 +238,7 @@ class WebRTCManager {
         throw new Error("Не удалось получить учетные данные TURN");
       }
       const turnConfig = await response.json();
-      // log(`DEBUG:✅ Получена конфигурация TURN" ${JSON.stringify(turnConfig)}`);
+      log(`DEBUG:✅ Получена конфигурация TURN" ${JSON.stringify(turnConfig)}`);
       return {
         iceServers: [
           // { urls: 'stun:stun.l.google.com:19302' },
@@ -263,6 +267,9 @@ class WebRTCManager {
     useChatStore.getState().setPeerConnection(this.peerConnection);
 
     const stream = await this._getLocalStream();
+    log(
+      `DEBUG:📡 Добавление локальных дорожек в peerConnection ${JSON.stringify(stream.getTracks())}`,
+    );
     stream.getTracks().forEach((track) => {
       this.peerConnection?.addTrack(track, stream);
     });
