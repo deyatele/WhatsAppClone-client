@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "prod": "node .next/standalone/server.js",
     "lint": "biome check --write",
